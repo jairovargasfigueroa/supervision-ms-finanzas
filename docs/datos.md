@@ -8,7 +8,7 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 | Campo | Tipo | Notas |
 |---|---|---|
 | id | uuid | PK |
-| obra_id | uuid | ref Obras |
+| obra_id | uuid | ref Obras, único (un contrato por obra) |
 | monto | numeric | |
 | plazo_dias | int | |
 | anticipo_pct | numeric | |
