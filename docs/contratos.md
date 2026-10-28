@@ -1,12 +1,12 @@
 # Finanzas: contratos
 
-**Estado: pendiente.** Aquí va la parte de los contratos generales (`docs/contratos/` de la carpeta general) que toca a este servicio. Lo de abajo es lo conocido hasta ahora; los detalles se definen en el diseño de cada funcionalidad.
+**Estado:** aquí va la parte de los contratos generales (`docs/contratos/` de la carpeta general) que toca a este servicio. Lo de abajo es lo conocido hasta ahora; los detalles se definen en el diseño de cada funcionalidad.
 
 ## REST que expone
 
 | Operación | Quién llama | Etapa |
 |---|---|---|
-| Registrar contrato de una obra | Gateway | Base |
+| (el contrato se crea por el evento `ObraRegistrada`, no por REST) | — | Base |
 | Ver contrato y saldo | Gateway, Obras | Base |
 | Listar cobros (por obra, por vencer) | Gateway | Base |
 | Crear orden de compra | n8n | Capa 2 |
@@ -16,6 +16,8 @@
 
 | Mensaje | Dirección | Notas |
 |---|---|---|
+| ObraRegistrada | escucha ← Obras | crea el contrato de la obra |
+| ContratoRegistrado / ContratoRechazado | publica → Obras | respuesta al registro de la obra |
 | Reservar saldo | escucha ← Obras | paso 2 de la saga |
 | Saldo reservado / sin saldo | publica → Obras | |
 | Emitir cobro | escucha ← Obras | paso 4 |
@@ -25,4 +27,4 @@
 
 ## Herramientas MCP (capa 5, solo lectura)
 
-`cobros_por_vencer`, `planillas_estado` **[por confirmar: este último puede ser de Obras]**.
+`cobros_por_vencer`. (`planillas_estado` es de Obras, porque las planillas son de Obras.)

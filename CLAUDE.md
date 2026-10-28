@@ -10,9 +10,9 @@ Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md`
 
 - PHP 8.3 · Laravel 13 (Composer)
 - PostgreSQL (en `.env`: `DB_CONNECTION=pgsql`) · migraciones de Laravel
-- RabbitMQ para la saga **[por definir la librería]** · validación de tokens de Keycloak **[por definir la librería]**
+- RabbitMQ con `php-amqplib/php-amqplib` 3 · validación de tokens de Keycloak con `firebase/php-jwt` 7 (JWKS del realm)
 - Pruebas con PHPUnit
-- Puerto: `8083` **[por confirmar]**
+- Puerto: `8083`
 
 ## Comandos
 
