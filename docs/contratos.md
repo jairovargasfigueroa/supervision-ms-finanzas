@@ -13,11 +13,11 @@ Roles: `admin`, `gerente`.
 (lista con 0 o 1 elemento).
 
 ### GET /cobros?obraId=&estado= · 006, 008
-Roles: `admin`, `gerente`.
+Roles: `admin`, `gerente`. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `venceEn asc`. Cada elemento:
 `[{ "id", "numero": "COB-2027-0003", "obraId", "planillaId", "montoNeto": 41881.80, "emitidoEn": "2027-04-02", "venceEn": "2027-05-02", "estado": "PENDIENTE" }]`
 
 ### GET /cobros/{id} · 008
-Roles: `admin`, `gerente`, `residente`. Mismo objeto que en la lista. (El gateway lo usa para mostrar el número de cobro de una planilla.)
+Roles: `admin`, `gerente`. Mismo objeto que en la lista. (El gateway lo usa para el detalle del cobro de una planilla, solo para `admin` y `gerente`; el número del cobro lo guarda Obras en la planilla y lo ven todos los que ven la planilla.)
 
 ### GET /cobros/resumen · 009
 Roles: `admin`, `gerente`.
