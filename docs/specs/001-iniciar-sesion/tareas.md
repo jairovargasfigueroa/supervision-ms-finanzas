@@ -6,4 +6,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Middleware `rol:...` que lee `realm_access.roles` del token ya validado
 - [x] Utilidad de pruebas para firmar tokens por rol
-- [ ] Pruebas 401/403/200
+- [x] Pruebas 401/403/200

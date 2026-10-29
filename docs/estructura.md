@@ -35,6 +35,8 @@ routes/api.php        rutas en español según docs/contratos.md, en la raíz (a
 tests/
   Utilidades/TokensPrueba.php  (trait: claves RSA de prueba, JWKS servido con Http::fake, firmar() y firmarConRoles(roles, azp))
   Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
+  Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
+  Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Contratos/Dominio/ContratoTest.php
   Feature/Contratos/ConsultarContratosTest.php
   Feature/Mensajeria/ReservarSaldoTest.php
