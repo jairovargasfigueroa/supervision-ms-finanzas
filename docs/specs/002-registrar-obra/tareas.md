@@ -8,4 +8,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] Migraciones: `contrato` (obra_id único), `outbox_evento`, `mensaje_procesado`
 - [x] Comando `mensajeria:publicar` (outbox cada 1 s) y `mensajeria:consumir` (proceso largo con inbox)
 - [x] Dominio `Contrato` con sus validaciones; caso de uso que atiende `ObraRegistrada` y publica `ContratoRegistrado` o `ContratoRechazado`
-- [ ] Pruebas: válido, inválido y mensaje repetido
+- [x] Pruebas: válido, inválido y mensaje repetido

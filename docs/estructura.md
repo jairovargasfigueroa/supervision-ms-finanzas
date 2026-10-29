@@ -18,7 +18,7 @@ app/
                       RolesEfectivos.php (función pura: roles que cuentan según azp)
       Mensajeria/     CanalMensajes.php (puerto del broker: publicar, consumir, cerrar), ConexionRabbit.php (lo implementa con
                       php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
-                      MensajeProcesado.php (modelo)
+                      MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
     Dominio/          Contrato.php, ReservaSaldo.php, EstadoReserva.php
     Aplicacion/
@@ -40,6 +40,7 @@ tests/
   Utilidades/TokensPrueba.php  (trait: claves RSA de prueba, JWKS servido con Http::fake, firmar() y firmarConRoles(roles, azp))
   Utilidades/CanalMensajesFalso.php  (doble en memoria de CanalMensajes: guarda lo publicado y simula las colas)
   Feature/Mensajeria/PublicadorOutboxTest.php, ConsumidorTest.php (outbox, reintentos con x-intentos, fallidos e inbox)
+  Feature/Mensajeria/ObraRegistradaTest.php (002: válido, inválido, repetido, misma obra, datos incompletos)
   Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
@@ -61,7 +62,7 @@ tests/
 ## Mensajería (002)
 
 - `php artisan mensajeria:publicar`: proceso largo; cada segundo envía al exchange `plataforma` las filas pendientes de `outbox_evento` (clave = `tipo`, cuerpo = `payload`, `message_id` = `id`, persistente, `application/json`) y les pone `publicado_en`. `--una-vez` publica y termina.
-- `php artisan mensajeria:consumir`: proceso largo; consume la cola `finanzas` y pasa cada sobre al manejador de su `tipo` (lista en `MensajeriaConsumir::manejadores()`); un `tipo` sin manejador se confirma sin hacer nada. El manejador extiende `ConsumidorBase`, que registra el `id` en `mensaje_procesado` en la misma transacción (repetido: no hace nada). Si procesar falla, vuelve a publicar el mensaje en la cola `finanzas` (exchange por defecto) con `x-intentos` + 1 y `x-clave-ruteo` (la clave original) y confirma el original; al tercer fallo lo publica en `plataforma.fallidos` con `x-error` y `x-cola-origen`. Si se cae la conexión, reconecta cada 5 s.
+- `php artisan mensajeria:consumir`: proceso largo; consume la cola `finanzas` y pasa cada sobre al manejador de su `tipo` (lista en `MensajeriaConsumir::manejadores()`). El manejador extiende `ConsumidorBase`, que registra el `id` en `mensaje_procesado` en la misma transacción (repetido: no hace nada). Si procesar falla, vuelve a publicar el mensaje en la cola `finanzas` (exchange por defecto, cuerpo sin tocar) con `x-intentos` + 1 y confirma el original; al tercer fallo lo publica en `plataforma.fallidos`. Un mensaje inválido (`MensajeInvalidoException`: no es JSON, sobre incompleto o de otra versión, datos incompletos o `tipo` sin manejador) va directo a `plataforma.fallidos`. Encabezados `x-intentos`, `x-error`, `x-cola-origen` y `x-clave-origen` (docs/contratos.md). Si se cae la conexión, reconecta cada 5 s.
 - El exchange y las colas los declara infra; aquí no se redeclaran (la cola se comprueba con una declaración pasiva).
 - Las pruebas no usan RabbitMQ: enlazan `CanalMensajes` con `CanalMensajesFalso` (`tests/Utilidades`).
 

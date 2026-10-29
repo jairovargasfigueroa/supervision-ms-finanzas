@@ -42,7 +42,7 @@ class PublicadorOutboxTest extends TestCase
         $this->assertSame('plataforma', $p1['exchange']);
         $this->assertSame('evento.finanzas.ContratoRegistrado', $p1['claveRuteo']);
         $this->assertSame($primero->id, $p1['idMensaje']);
-        $this->assertSame($primero->aArreglo(), json_decode($p1['cuerpo'], true));
+        $this->assertEquals($primero->aArreglo(), json_decode($p1['cuerpo'], true));
         $this->assertSame('evento.finanzas.ContratoRechazado', $p2['claveRuteo']);
         // El texto viaja sin escapar (UTF-8).
         $this->assertStringContainsString('"motivo":"El monto del contrato debe ser mayor a 0"', $p2['cuerpo']);

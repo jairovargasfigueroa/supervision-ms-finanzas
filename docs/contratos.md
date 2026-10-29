@@ -54,11 +54,21 @@ Todo mensaje va en el sobre común (convenciones), con `origen: "finanzas"` y, a
 - Valida el contrato. Si es válido crea `contrato` con `saldo_disponible = monto` y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
 - `monto` y los porcentajes se aceptan como número (o texto numérico) y se redondean a 2 decimales; `plazoDias`, entero; `firmadoEn`, `AAAA-MM-DD`.
 - Idempotente: un `id` ya procesado no hace nada, y si la obra ya tiene contrato (`obra_id` único) tampoco se crea otro ni se publica nada.
-- Un mensaje mal formado (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: falla, se reintenta y al tercer fallo va a `plataforma.fallidos`.
+- Un mensaje con datos incompletos (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: va directo a `plataforma.fallidos`.
 
 ### Reintentos y fallidos
 
-Si procesar un mensaje falla, se vuelve a publicar en la cola `finanzas` (exchange por defecto) con los encabezados `x-intentos` (fallos hasta ahora) y `x-clave-ruteo` (la clave original) y se confirma el original. Al tercer fallo se publica en la cola `plataforma.fallidos` (exchange por defecto) con `x-intentos: 3`, `x-clave-ruteo`, `x-cola-origen: finanzas` y `x-error` (clase y mensaje del error). Un `tipo` sin manejador se confirma sin hacer nada.
+Igual en todos los servicios. El reintento y el envío a fallidos se publican por el exchange por defecto, con el cuerpo original sin tocar y el mismo `message_id`, y luego se confirma el original.
+
+- Si procesar un mensaje falla, se vuelve a publicar en la cola `finanzas`. Al tercer intento fallido se publica en la cola `plataforma.fallidos`.
+- Van directo a `plataforma.fallidos`, sin reintentos: un cuerpo que no es JSON, un sobre incompleto o con `version` distinta de 1, datos incompletos, y un `tipo` sin consumidor en la cola `finanzas` (por ahora todo lo que no es `ObraRegistrada`, por ejemplo los comandos de la 008).
+
+| Encabezado | Valor |
+|---|---|
+| `x-intentos` | número de intentos ya hechos (1 en el primer reintento; 3 al ir a fallidos tras reintentar) |
+| `x-error` | texto del error, sin datos sensibles |
+| `x-cola-origen` | cola de donde salió: `finanzas` |
+| `x-clave-origen` | clave de enrutamiento original, por ejemplo `evento.obras.ObraRegistrada` (al reintentar por el exchange por defecto se pierde) |
 
 ## Herramientas MCP (capa 5, solo lectura)
 

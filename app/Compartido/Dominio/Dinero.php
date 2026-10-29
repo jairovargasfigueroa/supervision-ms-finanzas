@@ -21,7 +21,21 @@ final readonly class Dinero
             throw new InvalidArgumentException("El monto «{$monto}» no es un número.");
         }
 
-        return new self((int) round(round((float) $monto, 2) * 100));
+        if (is_int($monto)) {
+            return new self($monto * 100);
+        }
+
+        // Se redondea sobre el texto decimal (el float 10.125 se escribe «10.125»), no sobre el binario, para que
+        // la mitad siempre suba.
+        $texto = is_float($monto) ? var_export($monto, true) : trim($monto);
+        if (preg_match('/^([+-]?)(\d*)(?:\.(\d*))?$/', $texto, $partes) !== 1) {
+            // Notación científica: montos fuera de cualquier contrato real.
+            return new self((int) round((float) $texto * 100));
+        }
+        $decimales = str_pad($partes[3] ?? '', 3, '0');
+        $centavos = (int) $partes[2] * 100 + (int) substr($decimales, 0, 2) + ((int) $decimales[2] >= 5 ? 1 : 0);
+
+        return new self($partes[1] === '-' ? -$centavos : $centavos);
     }
 
     public function esPositivo(): bool

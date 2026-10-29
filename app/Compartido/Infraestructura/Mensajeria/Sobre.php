@@ -3,7 +3,6 @@
 namespace App\Compartido\Infraestructura\Mensajeria;
 
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 use JsonException;
 
 /**
@@ -45,17 +44,17 @@ final readonly class Sobre
     }
 
     /**
-     * @throws InvalidArgumentException si el cuerpo no es un sobre válido
+     * @throws MensajeInvalidoException si el cuerpo no es un sobre válido (no es JSON, falta un campo o `version` no es 1)
      */
     public static function desdeJson(string $cuerpo): self
     {
         try {
             $sobre = json_decode($cuerpo, true, 32, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw new InvalidArgumentException('El mensaje no es JSON válido: '.$e->getMessage(), previous: $e);
+            throw new MensajeInvalidoException('El mensaje no es JSON válido: '.$e->getMessage(), previous: $e);
         }
         if (! is_array($sobre)) {
-            throw new InvalidArgumentException('El mensaje no es un objeto JSON.');
+            throw new MensajeInvalidoException('El mensaje no es un objeto JSON.');
         }
 
         $id = $sobre['id'] ?? null;
@@ -63,23 +62,26 @@ final readonly class Sobre
         $correlacionId = $sobre['correlacionId'] ?? null;
         $datos = $sobre['datos'] ?? null;
         if (! is_string($id) || ! Str::isUuid($id)) {
-            throw new InvalidArgumentException('El sobre no tiene un id (uuid) válido.');
+            throw new MensajeInvalidoException('El sobre no tiene un id (uuid) válido.');
         }
         if (! is_string($tipo) || $tipo === '') {
-            throw new InvalidArgumentException('El sobre no tiene tipo.');
+            throw new MensajeInvalidoException('El sobre no tiene tipo.');
         }
         if (! is_string($correlacionId) || $correlacionId === '') {
-            throw new InvalidArgumentException('El sobre no tiene correlacionId.');
+            throw new MensajeInvalidoException('El sobre no tiene correlacionId.');
         }
         if (! is_array($datos) || ($datos !== [] && array_is_list($datos))) {
-            throw new InvalidArgumentException('El sobre no tiene datos (objeto).');
+            throw new MensajeInvalidoException('El sobre no tiene datos (objeto).');
+        }
+        if (($sobre['version'] ?? null) !== 1) {
+            throw new MensajeInvalidoException('El sobre no es de la versión 1.');
         }
 
         /** @var array<string, mixed> $datos */
         return new self(
             id: $id,
             tipo: $tipo,
-            version: is_int($sobre['version'] ?? null) ? $sobre['version'] : 1,
+            version: 1,
             ocurridoEn: is_string($sobre['ocurridoEn'] ?? null) ? $sobre['ocurridoEn'] : '',
             origen: is_string($sobre['origen'] ?? null) ? $sobre['origen'] : '',
             correlacionId: $correlacionId,

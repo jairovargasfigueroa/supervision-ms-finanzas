@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConsumidorBase;
+use App\Compartido\Infraestructura\Mensajeria\MensajeInvalidoException;
 use App\Compartido\Infraestructura\Mensajeria\Sobre;
 use App\Contratos\Infraestructura\Mensajeria\ObraRegistradaManejador;
 use Illuminate\Console\Command;
@@ -17,12 +18,14 @@ use Throwable;
  * Proceso largo que consume la cola `finanzas` (docs/convenciones.md, «Eventos y comandos»).
  *
  * Cada mensaje va al manejador de su `tipo`, que aplica el inbox. Si procesarlo falla, se vuelve a publicar en la
- * misma cola con el encabezado `x-intentos` + 1 y se confirma el original; al tercer fallo va a la cola
- * `plataforma.fallidos` (exchange por defecto) con el error.
+ * misma cola (exchange por defecto, cuerpo sin tocar) con `x-intentos` + 1 y se confirma el original; al tercer fallo
+ * va a la cola `plataforma.fallidos`. Un mensaje inválido (MensajeInvalidoException: no es JSON, sobre incompleto o de
+ * otra versión, datos incompletos o `tipo` sin consumidor en esta cola) va directo a `plataforma.fallidos`.
+ * Encabezados: `x-intentos`, `x-error`, `x-cola-origen` y `x-clave-origen` (docs/contratos.md).
  */
 class MensajeriaConsumir extends Command
 {
-    /** Fallos que se toleran antes de mandar el mensaje a `plataforma.fallidos`. */
+    /** Al llegar a este número de intentos fallidos, el mensaje va a `plataforma.fallidos`. */
     public const MAXIMO_INTENTOS = 3;
 
     protected $signature = 'mensajeria:consumir';
@@ -59,34 +62,35 @@ class MensajeriaConsumir extends Command
             $sobre = Sobre::desdeJson($cuerpo);
             $manejador = $this->manejadores()[$sobre->tipo] ?? null;
             if ($manejador === null) {
-                Log::warning('Mensaje sin manejador: se confirma sin hacer nada.', ['id' => $sobre->id, 'tipo' => $sobre->tipo]);
-
-                return;
+                throw new MensajeInvalidoException("El tipo {$sobre->tipo} no tiene consumidor en la cola {$cola}.");
             }
             app($manejador)->atender($sobre);
+        } catch (MensajeInvalidoException $e) {
+            $this->reintentarOFallar($canal, $cola, $cuerpo, $claveRuteo, $encabezados, $e, reintentar: false);
         } catch (Throwable $e) {
-            $this->reintentarOFallar($canal, $cola, $cuerpo, $claveRuteo, $encabezados, $e);
+            $this->reintentarOFallar($canal, $cola, $cuerpo, $claveRuteo, $encabezados, $e, reintentar: true);
         }
     }
 
     /**
      * @param  array<string, mixed>  $encabezados
      */
-    private function reintentarOFallar(CanalMensajes $canal, string $cola, string $cuerpo, string $claveRuteo, array $encabezados, Throwable $error): void
+    private function reintentarOFallar(CanalMensajes $canal, string $cola, string $cuerpo, string $claveRuteo, array $encabezados, Throwable $error, bool $reintentar): void
     {
         $intentos = (int) ($encabezados['x-intentos'] ?? 0) + 1;
         $idMensaje = $this->idDe($cuerpo);
         $nuevos = [
             ...$this->escalares($encabezados),
             'x-intentos' => $intentos,
-            // Al reintentar, la clave de enrutamiento pasa a ser el nombre de la cola: se guarda la original.
-            'x-clave-ruteo' => is_string($encabezados['x-clave-ruteo'] ?? null) ? $encabezados['x-clave-ruteo'] : $claveRuteo,
+            // Solo el mensaje del error: los textos de este servicio no llevan datos del mensaje.
+            'x-error' => mb_substr($error->getMessage(), 0, 1000),
+            'x-cola-origen' => $cola,
+            // Al reintentar por el exchange por defecto la clave pasa a ser el nombre de la cola: se guarda la original.
+            'x-clave-origen' => is_string($encabezados['x-clave-origen'] ?? null) ? $encabezados['x-clave-origen'] : $claveRuteo,
         ];
         $contexto = ['id' => $idMensaje, 'intentos' => $intentos, 'error' => $error->getMessage()];
 
-        if ($intentos >= self::MAXIMO_INTENTOS) {
-            $nuevos['x-error'] = mb_substr($error::class.': '.$error->getMessage(), 0, 1000);
-            $nuevos['x-cola-origen'] = $cola;
+        if (! $reintentar || $intentos >= self::MAXIMO_INTENTOS) {
             $canal->publicar('', (string) config('services.rabbitmq.cola_fallidos'), $cuerpo, $idMensaje, $nuevos);
             Log::error('Mensaje enviado a fallidos.', $contexto);
 
@@ -98,7 +102,7 @@ class MensajeriaConsumir extends Command
     }
 
     /**
-     * Manejador de cada `tipo` del sobre. Los que no están aquí se confirman sin hacer nada.
+     * Manejador de cada `tipo` del sobre. Un `tipo` que no está aquí va a `plataforma.fallidos`.
      *
      * @return array<string, class-string<ConsumidorBase>>
      */

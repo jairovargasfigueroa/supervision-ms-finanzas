@@ -79,6 +79,10 @@ class ContratoTest extends TestCase
         $this->assertSame('10.12', Dinero::desde('10.124')->aDecimal());
         $this->assertSame('1250000.00', Dinero::desde(1250000)->aDecimal());
         $this->assertSame('-0.50', Dinero::desde(-0.5)->aDecimal());
+        // 1.005 no es exacto en binario: se redondea sobre su texto decimal.
+        $this->assertSame('1.01', Dinero::desde(1.005)->aDecimal());
+        $this->assertSame('1250000.01', Dinero::desde('1250000.005')->aDecimal());
+        $this->assertSame('0.50', Dinero::desde('.5')->aDecimal());
     }
 
     private function registrar(float $monto = 1000, int $plazo = 300, float $anticipo = 10, float $retencion = 7): Contrato
