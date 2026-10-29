@@ -70,8 +70,9 @@ tests/
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
-  Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php
+  Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php (alcanza con saldo justo, 008), ReservaSaldoTest.php (008)
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
+  Unit/Cobros/Dominio/CobroTest.php (008: número, 30 días calendario, año de emisión en La Paz)
   Feature/Contratos/ConsultarContratosTest.php (006: saldo con y sin cobros y reservas, 400, 403 por rol)
   Feature/Contratos/RestriccionesSagaTest.php (008: una reserva vigente por planilla, cobro y número únicos, sin columna de saldo)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
@@ -80,6 +81,8 @@ tests/
   Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
   Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
                       fallos y datos inválidos)
+  Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
+                      cobro tardío, correlativo por año en La Paz)
 ```
 
 ## Reglas

@@ -7,4 +7,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] Migraciones `reserva_saldo` y `cobro` (planilla_id único, número correlativo por año)
 - [x] Manejadores de `ReservarSaldo`, `EmitirCobro`, `LiberarReserva` idempotentes, con sus respuestas
 - [x] Tarea diaria 00:10 (La Paz) que marca cobros vencidos; `GET /cobros/{id}`
-- [ ] Pruebas de la spec
+- [x] Pruebas de la spec
