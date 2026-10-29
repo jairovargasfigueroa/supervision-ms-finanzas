@@ -8,3 +8,4 @@ parameters:
         - app/
         - bootstrap/app.php
         - routes/
+        - database/seeders/DatosPruebaSeeder.php

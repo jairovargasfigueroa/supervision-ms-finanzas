@@ -24,7 +24,9 @@ app/
                       MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos),
                       LectorDatos.php (008: uuid y monto positivo de `datos`; si no, MensajeInvalidoException)
       Semilla/        datos de prueba (011): FechaRelativa.php (fecha de carga D de SEMILLA_FECHA o hoy en La Paz; resolver
-                      `D-120`, `D+18`, `M-3`, `M-1/09 10:00`, `D-2 11:00`; lo mal formado es error)
+                      `D-120`, `D+18`, `M-3`, `M-1/09 10:00`, `D-2 11:00`; lo mal formado es error),
+                      GuardaDatosPrueba.php (se niega con APP_ENV=production o base que no sea localhost, 127.0.0.1,
+                      ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
     Dominio/          Contrato.php, ReservaSaldo.php (008: reservar, consumir, liberar idempotente), EstadoReserva.php,
                       SaldoContrato.php (monto − cobrado − reservado, 006; alcanzaPara, 008)
@@ -57,8 +59,11 @@ app/
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
+config/semilla.php    semilla.fecha (SEMILLA_FECHA, fecha de carga D de los datos de prueba, 011)
 database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
                       reserva vigente y `cobro.numero` único)
+database/seeders/     DatosPruebaSeeder.php (011: lee datos/finanzas.json, copia de la sección 8 de docs/datos-prueba.md;
+                      calcula número, vencimiento y estado del cobro; insertOrIgnore en una transacción; sin outbox)
 routes/console.php    scheduler: `cobros:marcar-vencidos` cada día a las 00:10 en America/La_Paz (008)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
@@ -73,6 +78,7 @@ tests/
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
   Unit/Compartido/Semilla/FechaRelativaTest.php (011: tabla del diseño, días 2–27, mal formadas, D de SEMILLA_FECHA)
+  Unit/Compartido/Semilla/GuardaDatosPruebaTest.php (011: producción, hosts locales y remotos, DB_URL)
   Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php (alcanza con saldo justo, 008), ReservaSaldoTest.php (008)
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
   Unit/Cobros/Dominio/CobroTest.php (008: número, 30 días calendario, año de emisión en La Paz)
