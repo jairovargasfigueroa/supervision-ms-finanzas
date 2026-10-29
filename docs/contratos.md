@@ -6,6 +6,8 @@ Fuente para este servicio. La copia general está en `docs/contratos/` de la car
 
 Las rutas van en la raíz (sin prefijo `/api`). Token: `Authorization: Bearer <token de Keycloak>`; se valida la firma con el JWKS del realm (`KEYCLOAK_ISSUER/protocol/openid-connect/certs`, en caché una hora y recargado si llega un `kid` desconocido), el vencimiento, el emisor `KEYCLOAK_ISSUER` y la audiencia `KEYCLOAK_AUDIENCIA` (`aud` texto o arreglo). Sin token o con uno inválido: `401 NO_AUTENTICADO`. Si Keycloak no responde al pedir el JWKS: `503 SERVICIO_NO_DISPONIBLE`. Una ruta que no existe (con token válido): `404 RUTA_NO_ENCONTRADA`. Toda ruta de la API exige token por defecto (`bootstrap/app.php`); solo `/salud` lo quita. Toda respuesta lleva `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` y `X-Request-Id` (el que llega o un UUID nuevo).
 
+Rol (001): cada ruta indica abajo sus «Roles». Con token válido pero sin ninguno de esos roles: `403 SIN_PERMISO`. Cuentan solo los roles de la aplicación desde la que se inició sesión (`azp` del token): `portal` → solo `cliente`; `erp` o `app-obra` → solo `admin`, `residente`, `gerente`, `maestro`, `almacenero`; un cliente de servicio (`gateway`, `ia-agentes`, `n8n`) → los roles del token tal cual.
+
 ### GET /salud
 Sin token · `200 {"estado":"ok"}` (no toca la base ni RabbitMQ)
 
