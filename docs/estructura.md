@@ -23,6 +23,8 @@ app/
                       php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
                       MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos),
                       LectorDatos.php (008: uuid y monto positivo de `datos`; si no, MensajeInvalidoException)
+      Semilla/        datos de prueba (011): FechaRelativa.php (fecha de carga D de SEMILLA_FECHA o hoy en La Paz; resolver
+                      `D-120`, `D+18`, `M-3`, `M-1/09 10:00`, `D-2 11:00`; lo mal formado es error)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
     Dominio/          Contrato.php, ReservaSaldo.php (008: reservar, consumir, liberar idempotente), EstadoReserva.php,
                       SaldoContrato.php (monto − cobrado − reservado, 006; alcanzaPara, 008)
@@ -70,6 +72,7 @@ tests/
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
+  Unit/Compartido/Semilla/FechaRelativaTest.php (011: tabla del diseño, días 2–27, mal formadas, D de SEMILLA_FECHA)
   Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php (alcanza con saldo justo, 008), ReservaSaldoTest.php (008)
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
   Unit/Cobros/Dominio/CobroTest.php (008: número, 30 días calendario, año de emisión en La Paz)

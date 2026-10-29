@@ -6,7 +6,7 @@ Se implementa **después de la 009**, cuando existen todas las tablas del sistem
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Resolvedor de fechas relativas en zona `America/La_Paz` con D desde `SEMILLA_FECHA` o la fecha de hoy; pruebas unitarias con la tabla del diseño
+- [x] Resolvedor de fechas relativas en zona `America/La_Paz` con D desde `SEMILLA_FECHA` o la fecha de hoy; pruebas unitarias con la tabla del diseño
 - [ ] `database/seeders/datos/finanzas.json` y `DatosPruebaSeeder`: 3 contratos, 3 reservas `CONSUMIDA` y 3 cobros; calcula saldo disponible, número por año y estado según D; deja el correlativo de cobros en el último número; `insertOrIgnore` en una transacción; llama a `ProveedorSeeder` si existe; guarda contra `APP_ENV=production` y base no local
 - [ ] Comando `php artisan datos-prueba:vaciar`: vacía todas las tablas del negocio (no `migrations`), con la misma guarda
 - [ ] Pruebas Feature (D = 2026-10-28 y D = 2027-01-20): dos cargas sin duplicar; saldos; números y estados de los cobros; `GET /cobros/resumen` y `GET /contratos`; `outbox_evento` vacía; guarda
