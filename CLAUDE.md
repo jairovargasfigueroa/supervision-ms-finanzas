@@ -4,7 +4,7 @@ Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`; 006 y 009: `GET /contratos` (saldo calculado al leer), `GET /cobros` y `GET /cobros/resumen`; 008: participa en la saga «aprobar planilla» (`ReservarSaldo`, `EmitirCobro`, `LiberarReserva`), `GET /cobros/{id}` y la tarea diaria `cobros:marcar-vencidos` (00:10 en La Paz, con `php artisan schedule:work`). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`; 006 y 009: `GET /contratos` (saldo calculado al leer), `GET /cobros` y `GET /cobros/resumen`; 008: participa en la saga «aprobar planilla» (`ReservarSaldo`, `EmitirCobro`, `LiberarReserva`), `GET /cobros/{id}` y la tarea diaria `cobros:marcar-vencidos` (00:10 en La Paz, con `php artisan schedule:work`). 011: datos de prueba (`DatosPruebaSeeder` y `datos-prueba:vaciar`, solo desarrollo). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
@@ -26,7 +26,11 @@ php artisan schedule:work       # tareas programadas (cobros vencidos a las 00:1
 php artisan test                # pruebas
 vendor/bin/phpstan analyse      # análisis estático (larastan, nivel 6)
 vendor/bin/pint --test          # formato
+php artisan db:seed --class=DatosPruebaSeeder --force   # datos de prueba (011), con SEMILLA_FECHA=AAAA-MM-DD
+php artisan datos-prueba:vaciar                          # vacía todas las tablas salvo migrations (011)
 ```
+
+Datos de prueba (011): los llama `infra/semilla` con `SEMILLA_FECHA` (la misma D para los tres servicios). Los datos están en `database/seeders/datos/finanzas.json`, copia de la sección 8 de `docs/datos-prueba.md` (si cambian, se cambian allí primero). Solo en desarrollo: se niegan con `APP_ENV=production` o con una base que no es local, y no escriben en el outbox. Las pruebas usan la base de pruebas (SQLite en memoria de `phpunit.xml`); nunca se corren contra `finanzas_db` desde una prueba.
 
 Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php artisan key:generate`. **`.env` nunca se sube.**
 
