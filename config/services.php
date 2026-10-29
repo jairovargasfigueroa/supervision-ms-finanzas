@@ -33,6 +33,17 @@ return [
         'audiencia' => env('KEYCLOAK_AUDIENCIA', 'plataforma-api'),
     ],
 
+    // RabbitMQ (docs/convenciones.md, «Eventos y comandos»): infra declara el exchange, las colas y sus enlaces.
+    'rabbitmq' => [
+        'host' => env('RABBITMQ_HOST', 'localhost'),
+        'puerto' => (int) env('RABBITMQ_PORT', 5672),
+        'usuario' => env('RABBITMQ_USER', 'finanzas'),
+        'clave' => env('RABBITMQ_PASSWORD', ''),
+        'exchange' => 'plataforma',
+        'cola' => 'finanzas',
+        'cola_fallidos' => 'plataforma.fallidos',
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

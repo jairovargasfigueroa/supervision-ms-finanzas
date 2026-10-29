@@ -4,7 +4,7 @@ Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 

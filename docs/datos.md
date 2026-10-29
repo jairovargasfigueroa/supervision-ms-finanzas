@@ -9,11 +9,11 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 |---|---|---|
 | id | uuid | PK |
 | obra_id | uuid | ref Obras, único (un contrato por obra) |
-| monto | numeric | |
-| plazo_dias | int | |
-| anticipo_pct | numeric | |
-| retencion_pct | numeric | |
-| saldo_disponible | numeric | monto − cobros − reservas vigentes |
+| monto | numeric(14,2) | > 0 |
+| plazo_dias | int | > 0 |
+| anticipo_pct | numeric(5,2) | 0 a 100 |
+| retencion_pct | numeric(5,2) | 0 a 100; anticipo + retención < 100 |
+| saldo_disponible | numeric(14,2) | monto − cobros − reservas vigentes; al crearse, igual al monto |
 | firmado_en | date | |
 
 ### reserva_saldo
@@ -40,9 +40,10 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 ### outbox_evento
 | Campo | Tipo | Notas |
 |---|---|---|
-| id | uuid | PK |
-| tipo | varchar | |
-| payload | jsonb | |
+| id | uuid | PK; es el `id` del sobre (RabbitMQ lo recibe como `message_id`) |
+| tipo | varchar | clave de enrutamiento, por ejemplo `evento.finanzas.ContratoRegistrado` |
+| payload | jsonb | sobre completo del mensaje |
+| creado_en | timestamptz | se publican en este orden |
 | publicado_en | timestamptz | nulo hasta publicarse |
 
 ### mensaje_procesado
