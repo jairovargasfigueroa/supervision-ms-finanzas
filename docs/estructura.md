@@ -16,7 +16,9 @@ app/
       Http/           ManejadorProblemDetails.php (registrado en bootstrap/app.php), MiddlewareRequestId.php
       Auth/           ValidadorTokenKeycloak.php, MiddlewareToken.php, MiddlewareRol.php (alias `rol`), UsuarioActual.php,
                       RolesEfectivos.php (función pura: roles que cuentan según azp)
-      Mensajeria/     ConexionRabbit.php, Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo), MensajeProcesado.php (modelo)
+      Mensajeria/     CanalMensajes.php (puerto del broker: publicar, consumir, cerrar), ConexionRabbit.php (lo implementa con
+                      php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
+                      MensajeProcesado.php (modelo)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
     Dominio/          Contrato.php, ReservaSaldo.php, EstadoReserva.php
     Aplicacion/

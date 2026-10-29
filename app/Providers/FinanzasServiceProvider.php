@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Compartido\Infraestructura\Auth\ValidadorTokenKeycloak;
+use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
+use App\Compartido\Infraestructura\Mensajeria\ConexionRabbit;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -16,6 +18,14 @@ class FinanzasServiceProvider extends ServiceProvider
         $this->app->singleton(ValidadorTokenKeycloak::class, fn () => new ValidadorTokenKeycloak(
             emisor: (string) config('services.keycloak.emisor'),
             audiencia: (string) config('services.keycloak.audiencia'),
+        ));
+
+        // Conecta recién en la primera publicación o consumo (002).
+        $this->app->singleton(CanalMensajes::class, fn () => new ConexionRabbit(
+            host: (string) config('services.rabbitmq.host'),
+            puerto: (int) config('services.rabbitmq.puerto'),
+            usuario: (string) config('services.rabbitmq.usuario'),
+            clave: (string) config('services.rabbitmq.clave'),
         ));
     }
 }
