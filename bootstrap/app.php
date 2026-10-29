@@ -1,21 +1,23 @@
 <?php
 
+use App\Compartido\Infraestructura\Auth\MiddlewareToken;
+use App\Compartido\Infraestructura\Http\ManejadorProblemDetails;
+use App\Compartido\Infraestructura\Http\MiddlewareRequestId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
+        // Rutas en la raíz (GET /salud, GET /contratos...), sin el prefijo /api (docs/contratos.md).
+        api: __DIR__.'/../routes/api.php',
+        apiPrefix: '',
         commands: __DIR__.'/../routes/console.php',
-        health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->prepend(MiddlewareRequestId::class);
+        $middleware->alias(['token' => MiddlewareToken::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
-        );
+        ManejadorProblemDetails::registrar($exceptions);
     })->create();
