@@ -32,7 +32,6 @@ final class ContratoRepositorioEloquent implements ContratoRepositorio
             'plazo_dias' => $contrato->plazoDias,
             'anticipo_pct' => number_format($contrato->anticipoPct, 2, '.', ''),
             'retencion_pct' => number_format($contrato->retencionPct, 2, '.', ''),
-            'saldo_disponible' => $contrato->saldoDisponible()->aDecimal(),
             'firmado_en' => $contrato->firmadoEn->format('Y-m-d'),
         ]);
     }

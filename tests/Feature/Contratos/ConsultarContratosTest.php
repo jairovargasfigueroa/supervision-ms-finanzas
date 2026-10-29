@@ -38,7 +38,6 @@ class ConsultarContratosTest extends TestCase
             'plazo_dias' => 300,
             'anticipo_pct' => '10.00',
             'retencion_pct' => '7.00',
-            'saldo_disponible' => '1250000.00',
             'firmado_en' => '2026-10-20',
         ]);
     }
@@ -90,7 +89,6 @@ class ConsultarContratosTest extends TestCase
             'plazo_dias' => 100,
             'anticipo_pct' => '0.00',
             'retencion_pct' => '0.00',
-            'saldo_disponible' => '500000.00',
             'firmado_en' => '2026-10-01',
         ]);
         $this->cobro('1000.00', 'PENDIENTE', $otro);

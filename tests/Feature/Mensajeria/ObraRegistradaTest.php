@@ -39,7 +39,6 @@ class ObraRegistradaTest extends TestCase
         $contrato = ContratoModelo::query()->sole();
         $this->assertSame(self::OBRA_ID, $contrato->obra_id);
         $this->assertSame('1250000.00', $contrato->monto);
-        $this->assertSame('1250000.00', $contrato->saldo_disponible);
         $this->assertSame(300, $contrato->plazo_dias);
         $this->assertSame('10.00', $contrato->anticipo_pct);
         $this->assertSame('7.00', $contrato->retencion_pct);

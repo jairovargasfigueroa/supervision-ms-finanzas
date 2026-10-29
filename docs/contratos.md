@@ -62,7 +62,7 @@ Todo mensaje va en el sobre común (convenciones), con `origen: "finanzas"` y, a
 
 ### ObraRegistrada (002)
 
-- Valida el contrato. Si es válido crea `contrato` con `saldo_disponible = monto` y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
+- Valida el contrato. Si es válido crea `contrato` (su saldo disponible empieza igual al monto: se calcula al leer) y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
 - `monto` y los porcentajes se aceptan como número (o texto numérico) y se redondean a 2 decimales; `plazoDias`, entero; `firmadoEn`, `AAAA-MM-DD`.
 - Idempotente: un `id` ya procesado no hace nada, y si la obra ya tiene contrato (`obra_id` único) tampoco se crea otro ni se publica nada.
 - Un mensaje con datos incompletos (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: va directo a `plataforma.fallidos`.

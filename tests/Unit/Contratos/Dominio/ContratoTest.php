@@ -14,13 +14,12 @@ use PHPUnit\Framework\TestCase;
  */
 class ContratoTest extends TestCase
 {
-    public function test_un_contrato_valido_empieza_con_el_saldo_igual_al_monto(): void
+    public function test_un_contrato_valido_guarda_sus_datos(): void
     {
         $contrato = $this->registrar(monto: 1250000.00, plazo: 300, anticipo: 10, retencion: 7);
 
         $this->assertSame('obra-1', $contrato->obraId);
         $this->assertSame('1250000.00', $contrato->monto->aDecimal());
-        $this->assertSame('1250000.00', $contrato->saldoDisponible()->aDecimal());
         $this->assertSame(300, $contrato->plazoDias);
         $this->assertSame(10.0, $contrato->anticipoPct);
         $this->assertSame(7.0, $contrato->retencionPct);

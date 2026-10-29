@@ -45,7 +45,8 @@ app/
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
-database/migrations/  una migración por tabla y funcionalidad
+database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
+                      reserva vigente y `cobro.numero` único)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
 tests/
@@ -60,6 +61,7 @@ tests/
   Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
   Feature/Contratos/ConsultarContratosTest.php (006: saldo con y sin cobros y reservas, 400, 403 por rol)
+  Feature/Contratos/RestriccionesSagaTest.php (008: una reserva vigente por planilla, cobro y número únicos, sin columna de saldo)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Cobros/ResumirCobrosTest.php (009: datos de prueba, pendiente ya vencido, bordes de hoy y hoy + 30 en La Paz, 403 por rol)
   Feature/Mensajeria/ReservarSaldoTest.php
