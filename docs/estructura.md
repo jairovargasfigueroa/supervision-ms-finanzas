@@ -26,7 +26,9 @@ app/
       Semilla/        datos de prueba (011): FechaRelativa.php (fecha de carga D de SEMILLA_FECHA o hoy en La Paz; resolver
                       `D-120`, `D+18`, `M-3`, `M-1/09 10:00`, `D-2 11:00`; lo mal formado es error),
                       GuardaDatosPrueba.php (se niega con APP_ENV=production o base que no sea localhost, 127.0.0.1,
-                      ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST)
+                      ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST),
+                      VaciadorTablas.php (todas las tablas del esquema salvo `migrations`, en una transacción: TRUNCATE …
+                      RESTART IDENTITY CASCADE en PostgreSQL)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
     Dominio/          Contrato.php, ReservaSaldo.php (008: reservar, consumir, liberar idempotente), EstadoReserva.php,
                       SaldoContrato.php (monto − cobrado − reservado, 006; alcanzaPara, 008)
@@ -56,7 +58,8 @@ app/
       Mensajeria/     EmitirCobroManejador.php (008)
       Http/           CobroController.php (listar, mostrar 008, resumen), CobroResource.php, ListarCobrosRequest.php,
                       ResumenCobrosResource.php (009)
-  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`)
+  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`),
+                      VaciarDatosPrueba.php (011: `datos-prueba:vaciar`, con GuardaDatosPrueba)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
 config/semilla.php    semilla.fecha (SEMILLA_FECHA, fecha de carga D de los datos de prueba, 011)
@@ -90,6 +93,7 @@ tests/
   Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
   Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
                       fallos y datos inválidos)
+  Feature/Semilla/VaciarDatosPruebaTest.php (011: vacía el negocio, conserva migrations, recarga, guarda)
   Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
                       cobro tardío, correlativo por año en La Paz)
 ```
