@@ -4,7 +4,7 @@ Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** esqueleto. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
@@ -21,6 +21,8 @@ composer install
 php artisan serve --port=8083   # levantar
 php artisan migrate             # aplicar migraciones
 php artisan test                # pruebas
+vendor/bin/phpstan analyse      # análisis estático (larastan, nivel 6)
+vendor/bin/pint --test          # formato
 ```
 
 Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php artisan key:generate`. **`.env` nunca se sube.**
