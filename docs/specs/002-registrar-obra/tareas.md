@@ -7,5 +7,5 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] Instalar `php-amqplib/php-amqplib` 3 y crear la conexión con el exchange `plataforma`
 - [x] Migraciones: `contrato` (obra_id único), `outbox_evento`, `mensaje_procesado`
 - [x] Comando `mensajeria:publicar` (outbox cada 1 s) y `mensajeria:consumir` (proceso largo con inbox)
-- [ ] Dominio `Contrato` con sus validaciones; caso de uso que atiende `ObraRegistrada` y publica `ContratoRegistrado` o `ContratoRechazado`
+- [x] Dominio `Contrato` con sus validaciones; caso de uso que atiende `ObraRegistrada` y publica `ContratoRegistrado` o `ContratoRechazado`
 - [ ] Pruebas: válido, inválido y mensaje repetido

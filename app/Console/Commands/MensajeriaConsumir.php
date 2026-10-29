@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConsumidorBase;
 use App\Compartido\Infraestructura\Mensajeria\Sobre;
+use App\Contratos\Infraestructura\Mensajeria\ObraRegistradaManejador;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
@@ -103,7 +104,9 @@ class MensajeriaConsumir extends Command
      */
     private function manejadores(): array
     {
-        return [];
+        return [
+            'ObraRegistrada' => ObraRegistradaManejador::class,
+        ];
     }
 
     private function idDe(string $cuerpo): string

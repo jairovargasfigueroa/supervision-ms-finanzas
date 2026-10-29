@@ -35,7 +35,7 @@ Crear orden de compra y cuenta por pagar (las llama n8n). Se especifican en la c
 
 | Clave | Dirección | `datos` |
 |---|---|---|
-| `evento.obras.ObraRegistrada` | escucha | crea el contrato con `obraId` y `contrato{…}` |
+| `evento.obras.ObraRegistrada` | escucha | crea el contrato con `obraId` y `contrato{monto, plazoDias, anticipoPct, retencionPct, firmadoEn}` |
 | `evento.finanzas.ContratoRegistrado` | publica | `obraId, contratoId` |
 | `evento.finanzas.ContratoRechazado` | publica | `obraId, motivo` |
 | `comando.finanzas.ReservarSaldo` | escucha | `planillaId, obraId, monto` |
@@ -46,6 +46,19 @@ Crear orden de compra y cuenta por pagar (las llama n8n). Se especifican en la c
 | `evento.finanzas.CobroFallido` | publica | `planillaId, motivo` |
 | `comando.finanzas.LiberarReserva` | escucha | `planillaId, reservaId` |
 | `evento.finanzas.ReservaLiberada` | publica | `planillaId, reservaId` |
+
+Todo mensaje va en el sobre común (convenciones), con `origen: "finanzas"` y, al responder, el `correlacionId` del mensaje recibido; se publica persistente, `content_type application/json` y `message_id` = `id` del sobre. Escucha la cola `finanzas`.
+
+### ObraRegistrada (002)
+
+- Valida el contrato. Si es válido crea `contrato` con `saldo_disponible = monto` y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
+- `monto` y los porcentajes se aceptan como número (o texto numérico) y se redondean a 2 decimales; `plazoDias`, entero; `firmadoEn`, `AAAA-MM-DD`.
+- Idempotente: un `id` ya procesado no hace nada, y si la obra ya tiene contrato (`obra_id` único) tampoco se crea otro ni se publica nada.
+- Un mensaje mal formado (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: falla, se reintenta y al tercer fallo va a `plataforma.fallidos`.
+
+### Reintentos y fallidos
+
+Si procesar un mensaje falla, se vuelve a publicar en la cola `finanzas` (exchange por defecto) con los encabezados `x-intentos` (fallos hasta ahora) y `x-clave-ruteo` (la clave original) y se confirma el original. Al tercer fallo se publica en la cola `plataforma.fallidos` (exchange por defecto) con `x-intentos: 3`, `x-clave-ruteo`, `x-cola-origen: finanzas` y `x-error` (clase y mensaje del error). Un `tipo` sin manejador se confirma sin hacer nada.
 
 ## Herramientas MCP (capa 5, solo lectura)
 

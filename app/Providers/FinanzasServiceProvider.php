@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Compartido\Infraestructura\Auth\ValidadorTokenKeycloak;
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConexionRabbit;
+use App\Contratos\Aplicacion\Puertos\ContratoRepositorio;
+use App\Contratos\Aplicacion\Puertos\PublicadorEventos;
+use App\Contratos\Infraestructura\Mensajeria\PublicadorEventosOutbox;
+use App\Contratos\Infraestructura\Persistencia\ContratoRepositorioEloquent;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -19,6 +23,10 @@ class FinanzasServiceProvider extends ServiceProvider
             emisor: (string) config('services.keycloak.emisor'),
             audiencia: (string) config('services.keycloak.audiencia'),
         ));
+
+        // Puertos del contexto Contratos (002).
+        $this->app->bind(ContratoRepositorio::class, ContratoRepositorioEloquent::class);
+        $this->app->bind(PublicadorEventos::class, PublicadorEventosOutbox::class);
 
         // Conecta recién en la primera publicación o consumo (002).
         $this->app->singleton(CanalMensajes::class, fn () => new ConexionRabbit(

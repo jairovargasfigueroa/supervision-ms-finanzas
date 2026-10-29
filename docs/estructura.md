@@ -23,11 +23,13 @@ app/
     Dominio/          Contrato.php, ReservaSaldo.php, EstadoReserva.php
     Aplicacion/
       Puertos/        ContratoRepositorio.php, PublicadorEventos.php
-      CasosUso/       RegistrarContrato.php, ReservarSaldo.php, LiberarReserva.php, ConsultarContrato.php
+      CasosUso/       RegistrarContrato.php (+ ResultadoRegistrarContrato.php), ReservarSaldo.php, LiberarReserva.php,
+                      ConsultarContrato.php
     Infraestructura/
       Persistencia/   ContratoModelo.php, ReservaSaldoModelo.php, ContratoRepositorioEloquent.php
       Http/           ContratoController.php, ContratoResource.php, ConsultarContratosRequest.php
-      Mensajeria/     ObraRegistradaManejador.php, ReservarSaldoManejador.php
+      Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
+                      ObraRegistradaManejador.php, ReservarSaldoManejador.php
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
