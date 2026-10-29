@@ -26,10 +26,13 @@ app/
       Http/           ContratoController.php, ContratoResource.php, ConsultarContratosRequest.php
       Mensajeria/     ObraRegistradaManejador.php, ReservarSaldoManejador.php
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
-  Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones)
+  Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
+config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
 database/migrations/  una migración por tabla y funcionalidad
-routes/api.php        rutas en español según docs/contratos.md
+routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
+                      en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
 tests/
+  Feature/Compartido/SaludTest.php, AutenticacionTest.php (claves RSA de prueba; el JWKS se sirve con Http::fake)
   Unit/Contratos/Dominio/ContratoTest.php
   Feature/Contratos/ConsultarContratosTest.php
   Feature/Mensajeria/ReservarSaldoTest.php

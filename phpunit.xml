@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="KEYCLOAK_ISSUER" value="http://localhost:8080/realms/supervision"/>
+        <env name="KEYCLOAK_AUDIENCIA" value="plataforma-api"/>
     </php>
 </phpunit>

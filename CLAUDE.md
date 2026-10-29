@@ -4,7 +4,7 @@ Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** esqueleto. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
@@ -21,6 +21,8 @@ composer install
 php artisan serve --port=8083   # levantar
 php artisan migrate             # aplicar migraciones
 php artisan test                # pruebas
+vendor/bin/phpstan analyse      # análisis estático (larastan, nivel 6)
+vendor/bin/pint --test          # formato
 ```
 
 Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php artisan key:generate`. **`.env` nunca se sube.**
@@ -61,7 +63,7 @@ app/<Contexto>/
 
 Conventional Commits en español e imperativo (`feat(cobros): emite cobro al aprobar planilla`). Sin coautoría ni firmas de la IA.
 
-Trabajo en ramas `feat/NNN-nombre` con *pull request* y revisión; nunca hagas *push* a `main` (está protegida). Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.
+Git Flow: ramas `feat/`, `fix/`, `docs/`… desde `develop`, que entran por *pull request*; nunca hagas *push* a `main` ni a `develop` (están protegidas). El agente crea y fusiona los PR (merge normal, sin squash) hacia `develop` cuando todas las pruebas pasan. Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.
 
 ---
 

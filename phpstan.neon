@@ -1,0 +1,10 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Nivel de docs/estructura.md
+    level: 6
+    paths:
+        - app/
+        - bootstrap/app.php
+        - routes/
