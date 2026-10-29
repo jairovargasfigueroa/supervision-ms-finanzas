@@ -4,10 +4,14 @@ namespace App\Cobros\Infraestructura\Persistencia;
 
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\ResumenCobros;
+use App\Cobros\Aplicacion\TotalCobros;
+use App\Cobros\Dominio\CorteResumen;
 use App\Cobros\Dominio\EstadoCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Dominio\Pagina;
+use Illuminate\Database\Eloquent\Builder;
 
 final class CobroRepositorioEloquent implements CobroRepositorio
 {
@@ -55,5 +59,35 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             pagina: $criterios->pagina,
             tamano: $criterios->tamano,
         );
+    }
+
+    public function resumir(CorteResumen $corte): ResumenCobros
+    {
+        // `whereDate` compara solo la fecha, igual en PostgreSQL y en el SQLite de las pruebas.
+        $hoy = $corte->hoy->format('Y-m-d');
+        $vencidos = CobroModelo::query()->where(function (Builder $consulta) use ($hoy) {
+            $consulta->where('estado', EstadoCobro::Vencido->value)
+                ->orWhere(fn (Builder $pendiente) => $pendiente
+                    ->where('estado', EstadoCobro::Pendiente->value)
+                    ->whereDate('vence_en', '<', $hoy));
+        });
+        $porVencer = CobroModelo::query()
+            ->where('estado', EstadoCobro::Pendiente->value)
+            ->whereDate('vence_en', '>=', $hoy)
+            ->whereDate('vence_en', '<=', $corte->limitePorVencer->format('Y-m-d'));
+
+        return new ResumenCobros(self::total($vencidos), self::total($porVencer));
+    }
+
+    /**
+     * @param  Builder<CobroModelo>  $consulta
+     */
+    private static function total(Builder $consulta): TotalCobros
+    {
+        $fila = $consulta->toBase()->selectRaw('COUNT(*) AS cantidad, COALESCE(SUM(monto_neto), 0) AS monto')->first();
+        $monto = $fila->monto ?? 0;
+
+        // La suma llega como texto (PostgreSQL) o número (SQLite de las pruebas).
+        return new TotalCobros((int) ($fila->cantidad ?? 0), Dinero::desde(is_numeric($monto) ? (string) $monto : '0'));
     }
 }
