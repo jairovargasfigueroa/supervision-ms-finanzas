@@ -43,6 +43,16 @@ final readonly class Dinero
         return $this->centavos > 0;
     }
 
+    public function esMenorQue(self $otro): bool
+    {
+        return $this->centavos < $otro->centavos;
+    }
+
+    public function esIgualA(self $otro): bool
+    {
+        return $this->centavos === $otro->centavos;
+    }
+
     public function sumar(self $otro): self
     {
         return new self($this->centavos + $otro->centavos);

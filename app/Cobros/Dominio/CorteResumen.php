@@ -2,9 +2,9 @@
 
 namespace App\Cobros\Dominio;
 
+use App\Compartido\Dominio\FechaNegocio;
 use DateInterval;
 use DateTimeImmutable;
-use DateTimeZone;
 
 /**
  * Fechas con las que se arma el resumen de cobros del tablero (009), en la zona del negocio (`America/La_Paz`,
@@ -17,7 +17,7 @@ use DateTimeZone;
  */
 final readonly class CorteResumen
 {
-    public const ZONA = 'America/La_Paz';
+    public const ZONA = FechaNegocio::ZONA;
 
     public const DIAS_POR_VENCER = 30;
 
@@ -31,8 +31,7 @@ final readonly class CorteResumen
     /** El corte para el instante `$ahora` (en cualquier zona): toma la fecha que es en La Paz. */
     public static function al(DateTimeImmutable $ahora): self
     {
-        $zona = new DateTimeZone(self::ZONA);
-        $hoy = new DateTimeImmutable($ahora->setTimezone($zona)->format('Y-m-d'), $zona);
+        $hoy = FechaNegocio::hoy($ahora);
 
         return new self($hoy, $hoy->add(new DateInterval('P'.self::DIAS_POR_VENCER.'D')));
     }

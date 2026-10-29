@@ -9,8 +9,10 @@ use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConexionRabbit;
 use App\Contratos\Aplicacion\Puertos\ContratoRepositorio;
 use App\Contratos\Aplicacion\Puertos\PublicadorEventos;
+use App\Contratos\Aplicacion\Puertos\ReservaSaldoRepositorio;
 use App\Contratos\Infraestructura\Mensajeria\PublicadorEventosOutbox;
 use App\Contratos\Infraestructura\Persistencia\ContratoRepositorioEloquent;
+use App\Contratos\Infraestructura\Persistencia\ReservaSaldoRepositorioEloquent;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -29,6 +31,8 @@ class FinanzasServiceProvider extends ServiceProvider
         // Puertos del contexto Contratos (002).
         $this->app->bind(ContratoRepositorio::class, ContratoRepositorioEloquent::class);
         $this->app->bind(PublicadorEventos::class, PublicadorEventosOutbox::class);
+        // Reservas de saldo de la saga (008).
+        $this->app->bind(ReservaSaldoRepositorio::class, ReservaSaldoRepositorioEloquent::class);
 
         // Puertos del contexto Cobros (006).
         $this->app->bind(CobroRepositorio::class, CobroRepositorioEloquent::class);

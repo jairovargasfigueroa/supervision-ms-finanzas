@@ -67,12 +67,20 @@ Todo mensaje va en el sobre común (convenciones), con `origen: "finanzas"` y, a
 - Idempotente: un `id` ya procesado no hace nada, y si la obra ya tiene contrato (`obra_id` único) tampoco se crea otro ni se publica nada.
 - Un mensaje con datos incompletos (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: va directo a `plataforma.fallidos`.
 
+### Saga «aprobar planilla» (008)
+
+Finanzas es participante: Obras orquesta y le envía comandos a la cola `finanzas`; cada respuesta lleva el `correlacionId` del comando (el id de la saga en Obras). Los tres comandos son idempotentes por el `id` del mensaje (`mensaje_procesado`) y además por las reglas de abajo. Datos que faltan o mal formados (`planillaId`, `obraId` o `reservaId` que no son uuid; `monto` que no es número o no es mayor a 0) van directo a `plataforma.fallidos`. `monto` se acepta como número o texto numérico y se redondea a 2 decimales.
+
+- **`ReservarSaldo {planillaId, obraId, monto}`**: en una transacción, bloquea la fila del contrato de la obra (`FOR UPDATE`) y calcula su saldo disponible (monto − cobros − reservas `RESERVADA`). Si la planilla ya tiene una reserva `RESERVADA`, responde de nuevo `SaldoReservado` con esa misma (no crea otra). Si el saldo alcanza (saldo justo incluido), crea la `reserva_saldo` `RESERVADA` y responde `SaldoReservado {planillaId, reservaId}`; si no, `SaldoInsuficiente {planillaId, motivo: "Saldo del contrato insuficiente"}`. Una obra sin contrato no debería llegar (solo una obra con contrato tiene planillas): se trata como error, se reintenta y termina en fallidos (en Obras, el paso 2 vence).
+- **`EmitirCobro {planillaId, reservaId, monto}`**: bloquea la reserva. Si la planilla ya tiene cobro, responde `CobroEmitido` con el existente. Si la reserva no está `RESERVADA` (liberada o consumida), `CobroFallido {planillaId, motivo: "No se pudo emitir el cobro: la reserva de saldo ya no está vigente"}`. Si no, crea el `cobro` con `numero` `COB-<año>-<NNNN>` (siguiente correlativo del año de emisión), `emitido_en` = hoy en `America/La_Paz`, `vence_en` = `emitido_en` + 30 días, `PENDIENTE` y `monto_neto` = `monto`; marca la reserva `CONSUMIDA` y responde `CobroEmitido {planillaId, cobroId, numero, venceEn}` (`venceEn` en `AAAA-MM-DD`). Ante cualquier otro error al emitir (la reserva no existe o es de otra planilla, el `monto` no es el reservado, falla al guardar), `CobroFallido` con «No se pudo emitir el cobro por un error en Finanzas»; el error se registra en el log.
+- **`LiberarReserva {planillaId, reservaId}`**: si la reserva de esa planilla está `RESERVADA`, la marca `LIBERADA` (el monto vuelve al saldo) y publica `ReservaLiberada {planillaId, reservaId}` (nadie lo escucha; queda en el log). Si ya estaba liberada o consumida, o no existe para esa planilla, no cambia nada ni publica nada.
+
 ### Reintentos y fallidos
 
 Igual en todos los servicios. El reintento y el envío a fallidos se publican por el exchange por defecto, con el cuerpo original sin tocar y el mismo `message_id`, y luego se confirma el original.
 
 - Si procesar un mensaje falla, se vuelve a publicar en la cola `finanzas`. Al tercer intento fallido se publica en la cola `plataforma.fallidos`.
-- Van directo a `plataforma.fallidos`, sin reintentos: un cuerpo que no es JSON, un sobre incompleto o con `version` distinta de 1, datos incompletos, y un `tipo` sin consumidor en la cola `finanzas` (por ahora todo lo que no es `ObraRegistrada`, por ejemplo los comandos de la 008).
+- Van directo a `plataforma.fallidos`, sin reintentos: un cuerpo que no es JSON, un sobre incompleto o con `version` distinta de 1, datos incompletos, y un `tipo` sin consumidor en la cola `finanzas` (hoy, todo lo que no es `ObraRegistrada`, `ReservarSaldo`, `EmitirCobro` ni `LiberarReserva`).
 
 | Encabezado | Valor |
 |---|---|
