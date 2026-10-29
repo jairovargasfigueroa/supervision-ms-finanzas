@@ -28,6 +28,8 @@ Roles: `admin`, `gerente`. Paginado (convenciones): `pagina`, `tamano`, `orden`,
 
 ### GET /cobros/{id} · 008
 Roles: `admin`, `gerente`. Mismo objeto que en la lista. (El gateway lo usa para el detalle del cobro de una planilla, solo para `admin` y `gerente`; el número del cobro lo guarda Obras en la planilla y lo ven todos los que ven la planilla.)
+- `id`: uuid. La ruta se registra después de `GET /cobros/resumen` y solo acepta un uuid, así «resumen» no se toma como id.
+- Errores: `404` si no existe o el `id` no es un uuid (el contrato no define un código propio: responde el genérico `RUTA_NO_ENCONTRADA`) · `403 SIN_PERMISO`.
 
 ### GET /cobros/resumen · 009
 Roles: `admin`, `gerente`.
@@ -37,6 +39,10 @@ Roles: `admin`, `gerente`.
 - `porVencer30Dias`: cobros `PENDIENTE` con `venceEn` entre hoy y hoy + 30 días, ambos incluidos (el que vence hoy todavía no está vencido). Un cobro cuenta en un solo grupo.
 - `cantidad`: número de cobros; `monto`: suma de su `montoNeto` con 2 decimales (`0` si no hay).
 - Errores: `403 SIN_PERMISO`.
+
+### Tarea programada · 008
+
+`php artisan cobros:marcar-vencidos`, programada con el scheduler de Laravel (`routes/console.php`) cada día a las 00:10 hora de La Paz: los cobros `PENDIENTE` con `vence_en` anterior a hoy (fecha en `America/La_Paz`) pasan a `VENCIDO`. Idempotente. Para que corra hace falta el scheduler: `php artisan schedule:work` en desarrollo o `php artisan schedule:run` cada minuto en el despliegue.
 
 ### Capa 2
 

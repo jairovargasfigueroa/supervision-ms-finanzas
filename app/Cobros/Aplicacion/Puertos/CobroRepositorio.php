@@ -9,6 +9,7 @@ use App\Cobros\Dominio\CorteResumen;
 use App\Cobros\Dominio\EstadoCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Pagina;
+use DateTimeImmutable;
 
 interface CobroRepositorio
 {
@@ -43,4 +44,14 @@ interface CobroRepositorio
 
     /** Crea el cobro (008). */
     public function guardar(Cobro $cobro): void;
+
+    /** El cobro con ese id, con el `obraId` de su contrato, o `null` si no existe (`GET /cobros/{id}`, 008). */
+    public function buscar(string $id): ?CobroConsultado;
+
+    /**
+     * Pasa a `VENCIDO` los cobros `PENDIENTE` con `vence_en` anterior a `$hoy` (fecha en La Paz, 008).
+     *
+     * @return int cuántos cambió
+     */
+    public function marcarVencidos(DateTimeImmutable $hoy): int;
 }

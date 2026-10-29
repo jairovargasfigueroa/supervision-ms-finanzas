@@ -13,6 +13,7 @@ use App\Cobros\Dominio\NumeroCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Dominio\Pagina;
+use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,10 +31,7 @@ final class CobroRepositorioEloquent implements CobroRepositorio
 
     public function listar(?string $obraId, ?EstadoCobro $estado, CriteriosPagina $criterios): Pagina
     {
-        // El `obraId` es el del contrato del cobro.
-        $consulta = CobroModelo::query()
-            ->join('contrato', 'contrato.id', '=', 'cobro.contrato_id')
-            ->select('cobro.*', 'contrato.obra_id');
+        $consulta = self::conObra();
         if ($obraId !== null) {
             $consulta->where('contrato.obra_id', $obraId);
         }
@@ -52,19 +50,52 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             ->get();
 
         return new Pagina(
-            items: $filas->map(fn (CobroModelo $fila) => new CobroConsultado(
-                id: $fila->id,
-                numero: $fila->numero,
-                obraId: $fila->obra_id,
-                planillaId: $fila->planilla_id,
-                montoNeto: Dinero::desde($fila->monto_neto),
-                emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
-                venceEn: $fila->vence_en->toDateTimeImmutable(),
-                estado: EstadoCobro::from($fila->estado),
-            ))->values()->all(),
+            items: $filas->map(fn (CobroModelo $fila) => self::consultado($fila))->values()->all(),
             total: $total,
             pagina: $criterios->pagina,
             tamano: $criterios->tamano,
+        );
+    }
+
+    public function buscar(string $id): ?CobroConsultado
+    {
+        $fila = self::conObra()->where('cobro.id', $id)->first();
+
+        return $fila === null ? null : self::consultado($fila);
+    }
+
+    public function marcarVencidos(DateTimeImmutable $hoy): int
+    {
+        // `whereDate` compara solo la fecha, igual en PostgreSQL y en el SQLite de las pruebas.
+        return CobroModelo::query()
+            ->where('estado', EstadoCobro::Pendiente->value)
+            ->whereDate('vence_en', '<', $hoy->format('Y-m-d'))
+            ->update(['estado' => EstadoCobro::Vencido->value]);
+    }
+
+    /**
+     * Cobros con el `obra_id` de su contrato.
+     *
+     * @return Builder<CobroModelo>
+     */
+    private static function conObra(): Builder
+    {
+        return CobroModelo::query()
+            ->join('contrato', 'contrato.id', '=', 'cobro.contrato_id')
+            ->select('cobro.*', 'contrato.obra_id');
+    }
+
+    private static function consultado(CobroModelo $fila): CobroConsultado
+    {
+        return new CobroConsultado(
+            id: $fila->id,
+            numero: $fila->numero,
+            obraId: $fila->obra_id,
+            planillaId: $fila->planilla_id,
+            montoNeto: Dinero::desde($fila->monto_neto),
+            emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
+            venceEn: $fila->vence_en->toDateTimeImmutable(),
+            estado: EstadoCobro::from($fila->estado),
         );
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Mensajeria;
 
+use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
@@ -14,6 +15,7 @@ use App\Compartido\Dominio\Pagina;
 use App\Compartido\Infraestructura\Mensajeria\MensajeProcesado;
 use App\Contratos\Infraestructura\Persistencia\ReservaSaldoModelo;
 use Carbon\CarbonImmutable;
+use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
 use Tests\TestCase;
@@ -184,5 +186,15 @@ final readonly class CobroRepositorioQueFalla implements CobroRepositorio
     public function guardar(Cobro $cobro): void
     {
         throw new RuntimeException('Fallo simulado al guardar el cobro.');
+    }
+
+    public function buscar(string $id): ?CobroConsultado
+    {
+        return $this->real->buscar($id);
+    }
+
+    public function marcarVencidos(DateTimeImmutable $hoy): int
+    {
+        return $this->real->marcarVencidos($hoy);
     }
 }

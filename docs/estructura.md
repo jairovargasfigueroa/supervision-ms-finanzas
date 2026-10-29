@@ -43,18 +43,21 @@ app/
     Aplicacion/
       CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009)
       Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen;
-                      008: deLaPlanilla, siguienteCorrelativo del año, guardar)
-      CasosUso/       ListarCobros.php (006), ResumirCobros.php (009), EmitirCobro.php (+ ResultadoEmitirCobro.php) (008)
+                      008: deLaPlanilla, siguienteCorrelativo del año, guardar, buscar, marcarVencidos)
+      CasosUso/       ListarCobros.php (006), ResumirCobros.php (009), EmitirCobro.php (+ ResultadoEmitirCobro.php),
+                      ConsultarCobro.php, MarcarCobrosVencidos.php (008)
     Infraestructura/
       Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate;
                       correlativo con MAX y pg_advisory_xact_lock por año)
       Mensajeria/     EmitirCobroManejador.php (008)
-      Http/           CobroController.php, CobroResource.php, ListarCobrosRequest.php, ResumenCobrosResource.php (009)
-  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
+      Http/           CobroController.php (listar, mostrar 008, resumen), CobroResource.php, ListarCobrosRequest.php,
+                      ResumenCobrosResource.php (009)
+  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
 database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
                       reserva vigente y `cobro.numero` único)
+routes/console.php    scheduler: `cobros:marcar-vencidos` cada día a las 00:10 en America/La_Paz (008)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
 tests/
@@ -73,6 +76,8 @@ tests/
   Feature/Contratos/RestriccionesSagaTest.php (008: una reserva vigente por planilla, cobro y número únicos, sin columna de saldo)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Cobros/ResumirCobrosTest.php (009: datos de prueba, pendiente ya vencido, bordes de hoy y hoy + 30 en La Paz, 403 por rol)
+  Feature/Cobros/ConsultarCobroTest.php (008: formato, 404, no choca con resumen, 403 por rol, 401)
+  Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
   Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
                       fallos y datos inválidos)
 ```

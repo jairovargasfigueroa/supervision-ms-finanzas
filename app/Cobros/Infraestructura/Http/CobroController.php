@@ -2,6 +2,7 @@
 
 namespace App\Cobros\Infraestructura\Http;
 
+use App\Cobros\Aplicacion\CasosUso\ConsultarCobro;
 use App\Cobros\Aplicacion\CasosUso\ListarCobros;
 use App\Cobros\Aplicacion\CasosUso\ResumirCobros;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,20 @@ final class CobroController
             'pagina' => $pagina->pagina,
             'tamano' => $pagina->tamano,
         ]);
+    }
+
+    /**
+     * `GET /cobros/{id}` (008): el mismo objeto que en la lista. Un id que no existe responde `404` (el genérico,
+     * `RUTA_NO_ENCONTRADA`: el contrato no define un código propio).
+     */
+    public function mostrar(Request $request, string $id, ConsultarCobro $consultar): JsonResponse
+    {
+        $cobro = $consultar->ejecutar($id);
+        if ($cobro === null) {
+            abort(404);
+        }
+
+        return response()->json(CobroResource::make($cobro)->resolve($request));
     }
 
     /** `GET /cobros/resumen` (009): `{ vencidos: { cantidad, monto }, porVencer30Dias: { cantidad, monto } }`. */
