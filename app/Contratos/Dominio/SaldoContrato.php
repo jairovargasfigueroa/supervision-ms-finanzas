@@ -20,4 +20,10 @@ final readonly class SaldoContrato
     {
         return $this->monto->restar($this->totalCobrado)->restar($this->totalReservado);
     }
+
+    /** Si el saldo disponible cubre `$monto` (saldo justo incluido): se puede reservar (008). */
+    public function alcanzaPara(Dinero $monto): bool
+    {
+        return ! $this->disponible()->esMenorQue($monto);
+    }
 }

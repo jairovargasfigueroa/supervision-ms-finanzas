@@ -10,7 +10,7 @@ use DateTimeImmutable;
  * Contrato de una obra (docs/reglas-negocio.md, «Contrato»). Un contrato por obra.
  *
  * Validaciones: monto > 0, plazo > 0, anticipo y retención entre 0 y 100, y anticipo + retención < 100.
- * Al registrarse, el saldo disponible es el monto.
+ * El saldo disponible no se guarda: se calcula al leer con sus cobros y reservas (SaldoContrato).
  */
 final class Contrato
 {
@@ -34,7 +34,6 @@ final class Contrato
         public readonly float $anticipoPct,
         public readonly float $retencionPct,
         public readonly DateTimeImmutable $firmadoEn,
-        private Dinero $saldoDisponible,
     ) {}
 
     /**
@@ -57,7 +56,7 @@ final class Contrato
             throw new ReglaNegocioException(self::CODIGO_INVALIDO, implode('; ', $motivos));
         }
 
-        return new self($id, $obraId, $monto, $plazoDias, $anticipoPct, $retencionPct, $firmadoEn, $monto);
+        return new self($id, $obraId, $monto, $plazoDias, $anticipoPct, $retencionPct, $firmadoEn);
     }
 
     /**
@@ -82,11 +81,6 @@ final class Contrato
         }
 
         return $motivos;
-    }
-
-    public function saldoDisponible(): Dinero
-    {
-        return $this->saldoDisponible;
     }
 
     private static function entre0y100(float $porcentaje): bool

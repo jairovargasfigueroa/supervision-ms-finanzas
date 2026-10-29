@@ -2,11 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Cobros\Infraestructura\Mensajeria\EmitirCobroManejador;
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConsumidorBase;
 use App\Compartido\Infraestructura\Mensajeria\MensajeInvalidoException;
 use App\Compartido\Infraestructura\Mensajeria\Sobre;
+use App\Contratos\Infraestructura\Mensajeria\LiberarReservaManejador;
 use App\Contratos\Infraestructura\Mensajeria\ObraRegistradaManejador;
+use App\Contratos\Infraestructura\Mensajeria\ReservarSaldoManejador;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
@@ -110,6 +113,10 @@ class MensajeriaConsumir extends Command
     {
         return [
             'ObraRegistrada' => ObraRegistradaManejador::class,
+            // 008 · saga «aprobar planilla».
+            'ReservarSaldo' => ReservarSaldoManejador::class,
+            'EmitirCobro' => EmitirCobroManejador::class,
+            'LiberarReserva' => LiberarReservaManejador::class,
         ];
     }
 

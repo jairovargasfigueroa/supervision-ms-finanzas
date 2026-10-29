@@ -6,15 +6,23 @@ use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Aplicacion\TotalCobros;
+use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
 use App\Cobros\Dominio\EstadoCobro;
+use App\Cobros\Dominio\NumeroCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Dominio\Pagina;
+use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class CobroRepositorioEloquent implements CobroRepositorio
 {
+    /** Primera clave del bloqueo de PostgreSQL que ordena la serie de números de cobro (la segunda es el año). */
+    private const BLOQUEO_NUMERO_COBRO = 8008;
+
     /** Columna de `cobro` por cada `orden` del JSON. */
     private const COLUMNA_ORDEN = [
         'venceEn' => 'cobro.vence_en',
@@ -23,10 +31,7 @@ final class CobroRepositorioEloquent implements CobroRepositorio
 
     public function listar(?string $obraId, ?EstadoCobro $estado, CriteriosPagina $criterios): Pagina
     {
-        // El `obraId` es el del contrato del cobro.
-        $consulta = CobroModelo::query()
-            ->join('contrato', 'contrato.id', '=', 'cobro.contrato_id')
-            ->select('cobro.*', 'contrato.obra_id');
+        $consulta = self::conObra();
         if ($obraId !== null) {
             $consulta->where('contrato.obra_id', $obraId);
         }
@@ -45,19 +50,52 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             ->get();
 
         return new Pagina(
-            items: $filas->map(fn (CobroModelo $fila) => new CobroConsultado(
-                id: $fila->id,
-                numero: $fila->numero,
-                obraId: $fila->obra_id,
-                planillaId: $fila->planilla_id,
-                montoNeto: Dinero::desde($fila->monto_neto),
-                emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
-                venceEn: $fila->vence_en->toDateTimeImmutable(),
-                estado: EstadoCobro::from($fila->estado),
-            ))->values()->all(),
+            items: $filas->map(fn (CobroModelo $fila) => self::consultado($fila))->values()->all(),
             total: $total,
             pagina: $criterios->pagina,
             tamano: $criterios->tamano,
+        );
+    }
+
+    public function buscar(string $id): ?CobroConsultado
+    {
+        $fila = self::conObra()->where('cobro.id', $id)->first();
+
+        return $fila === null ? null : self::consultado($fila);
+    }
+
+    public function marcarVencidos(DateTimeImmutable $hoy): int
+    {
+        // `whereDate` compara solo la fecha, igual en PostgreSQL y en el SQLite de las pruebas.
+        return CobroModelo::query()
+            ->where('estado', EstadoCobro::Pendiente->value)
+            ->whereDate('vence_en', '<', $hoy->format('Y-m-d'))
+            ->update(['estado' => EstadoCobro::Vencido->value]);
+    }
+
+    /**
+     * Cobros con el `obra_id` de su contrato.
+     *
+     * @return Builder<CobroModelo>
+     */
+    private static function conObra(): Builder
+    {
+        return CobroModelo::query()
+            ->join('contrato', 'contrato.id', '=', 'cobro.contrato_id')
+            ->select('cobro.*', 'contrato.obra_id');
+    }
+
+    private static function consultado(CobroModelo $fila): CobroConsultado
+    {
+        return new CobroConsultado(
+            id: $fila->id,
+            numero: $fila->numero,
+            obraId: $fila->obra_id,
+            planillaId: $fila->planilla_id,
+            montoNeto: Dinero::desde($fila->monto_neto),
+            emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
+            venceEn: $fila->vence_en->toDateTimeImmutable(),
+            estado: EstadoCobro::from($fila->estado),
         );
     }
 
@@ -77,6 +115,61 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             ->whereDate('vence_en', '<=', $corte->limitePorVencer->format('Y-m-d'));
 
         return new ResumenCobros(self::total($vencidos), self::total($porVencer));
+    }
+
+    public function siguienteId(): string
+    {
+        return (string) Str::uuid();
+    }
+
+    public function deLaPlanilla(string $planillaId): ?Cobro
+    {
+        $fila = CobroModelo::query()->where('planilla_id', $planillaId)->first();
+
+        return $fila === null ? null : Cobro::reconstruir(
+            id: $fila->id,
+            contratoId: $fila->contrato_id,
+            planillaId: $fila->planilla_id,
+            numero: $fila->numero,
+            montoNeto: Dinero::desde($fila->monto_neto),
+            emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
+            venceEn: $fila->vence_en->toDateTimeImmutable(),
+            estado: EstadoCobro::from($fila->estado),
+        );
+    }
+
+    public function siguienteCorrelativo(int $anio): int
+    {
+        // Bloqueo de transacción por año (se suelta al confirmar). El SQLite de las pruebas no lo necesita: escribe de
+        // a una transacción. El índice único de `numero` respalda a los dos.
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::select('SELECT pg_advisory_xact_lock(?, ?)', [self::BLOQUEO_NUMERO_COBRO, $anio]);
+        }
+
+        $prefijo = NumeroCobro::prefijoDelAnio($anio);
+        // Se compara el correlativo como número (no como texto), por si algún año pasa de 9999 cobros.
+        $fila = CobroModelo::query()
+            ->toBase()
+            ->where('numero', 'like', $prefijo.'%')
+            ->selectRaw('MAX(CAST(SUBSTR(numero, ?) AS INTEGER)) AS ultimo', [strlen($prefijo) + 1])
+            ->first();
+        $ultimo = $fila->ultimo ?? 0;
+
+        return (is_numeric($ultimo) ? (int) $ultimo : 0) + 1;
+    }
+
+    public function guardar(Cobro $cobro): void
+    {
+        CobroModelo::query()->create([
+            'id' => $cobro->id,
+            'contrato_id' => $cobro->contratoId,
+            'planilla_id' => $cobro->planillaId,
+            'numero' => $cobro->numero,
+            'monto_neto' => $cobro->montoNeto->aDecimal(),
+            'emitido_en' => $cobro->emitidoEn->format('Y-m-d'),
+            'vence_en' => $cobro->venceEn->format('Y-m-d'),
+            'estado' => $cobro->estado->value,
+        ]);
     }
 
     /**

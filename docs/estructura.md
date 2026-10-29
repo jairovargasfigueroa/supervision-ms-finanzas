@@ -11,7 +11,8 @@ Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, sche
 ```
 app/
   Compartido/
-    Dominio/          ReglaNegocioException.php, Dinero.php (redondeo a 2, sumar, restar), CriteriosPagina.php (tamano > 100 →
+    Dominio/          ReglaNegocioException.php, Dinero.php (redondeo a 2, sumar, restar, comparar), FechaNegocio.php (008: hoy
+                      en America/La_Paz), CriteriosPagina.php (tamano > 100 →
                       PAGINACION_INVALIDA), Pagina.php ({ items, total, pagina, tamano })
     Infraestructura/
       Http/           ManejadorProblemDetails.php (registrado en bootstrap/app.php; ReglaNegocioException con su código y estado,
@@ -20,49 +21,68 @@ app/
                       RolesEfectivos.php (función pura: roles que cuentan según azp)
       Mensajeria/     CanalMensajes.php (puerto del broker: publicar, consumir, cerrar), ConexionRabbit.php (lo implementa con
                       php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
-                      MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos)
+                      MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos),
+                      LectorDatos.php (008: uuid y monto positivo de `datos`; si no, MensajeInvalidoException)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
-    Dominio/          Contrato.php, ReservaSaldo.php (008), EstadoReserva.php, SaldoContrato.php (monto − cobrado − reservado, 006)
+    Dominio/          Contrato.php, ReservaSaldo.php (008: reservar, consumir, liberar idempotente), EstadoReserva.php,
+                      SaldoContrato.php (monto − cobrado − reservado, 006; alcanzaPara, 008)
     Aplicacion/
       ContratoConsultado.php (lo que lee GET /contratos: datos + SaldoContrato)
-      Puertos/        ContratoRepositorio.php (consultarPorObra: suma cobros y reservas vigentes), PublicadorEventos.php
-      CasosUso/       RegistrarContrato.php (+ ResultadoRegistrarContrato.php), ReservarSaldo.php, LiberarReserva.php (008),
-                      ConsultarContrato.php (006)
+      Puertos/        ContratoRepositorio.php (consultarPorObra: suma cobros y reservas vigentes, con bloqueo opcional;
+                      bloquear), ReservaSaldoRepositorio.php (008), PublicadorEventos.php
+      CasosUso/       RegistrarContrato.php (+ ResultadoRegistrarContrato.php), ReservarSaldo.php (+ ResultadoReservarSaldo.php),
+                      LiberarReserva.php (+ ResultadoLiberarReserva.php) (008), ConsultarContrato.php (006)
     Infraestructura/
-      Persistencia/   ContratoModelo.php, ReservaSaldoModelo.php, ContratoRepositorioEloquent.php
+      Persistencia/   ContratoModelo.php, ReservaSaldoModelo.php, ContratoRepositorioEloquent.php, ReservaSaldoRepositorioEloquent.php
       Http/           ContratoController.php, ContratoResource.php, ConsultarContratosRequest.php
       Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
-                      ObraRegistradaManejador.php, ReservarSaldoManejador.php
+                      ObraRegistradaManejador.php, ReservarSaldoManejador.php, LiberarReservaManejador.php (008)
   Cobros/                       # cobros al cliente: los lee la 006, los emite la 008
-    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días)
+    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días),
+                      Cobro.php (008: emitir, vence a los 30 días), NumeroCobro.php (008: COB-<año>-<NNNN>)
     Aplicacion/
       CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009)
-      Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen)
-      CasosUso/       ListarCobros.php (006), ResumirCobros.php (009)
+      Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen;
+                      008: deLaPlanilla, siguienteCorrelativo del año, guardar, buscar, marcarVencidos)
+      CasosUso/       ListarCobros.php (006), ResumirCobros.php (009), EmitirCobro.php (+ ResultadoEmitirCobro.php),
+                      ConsultarCobro.php, MarcarCobrosVencidos.php (008)
     Infraestructura/
-      Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate)
-      Http/           CobroController.php, CobroResource.php, ListarCobrosRequest.php, ResumenCobrosResource.php (009)
-  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
+      Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate;
+                      correlativo con MAX y pg_advisory_xact_lock por año)
+      Mensajeria/     EmitirCobroManejador.php (008)
+      Http/           CobroController.php (listar, mostrar 008, resumen), CobroResource.php, ListarCobrosRequest.php,
+                      ResumenCobrosResource.php (009)
+  Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
-database/migrations/  una migración por tabla y funcionalidad
+database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
+                      reserva vigente y `cobro.numero` único)
+routes/console.php    scheduler: `cobros:marcar-vencidos` cada día a las 00:10 en America/La_Paz (008)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
 tests/
   Utilidades/TokensPrueba.php  (trait: claves RSA de prueba, JWKS servido con Http::fake, firmar() y firmarConRoles(roles, azp))
   Utilidades/CanalMensajesFalso.php  (doble en memoria de CanalMensajes: guarda lo publicado y simula las colas)
+  Utilidades/MensajesSaga.php  (trait 008: contrato, reservas y cobros de prueba; comandos de Obras y respuestas del outbox)
   Feature/Mensajeria/PublicadorOutboxTest.php, ConsumidorTest.php (outbox, reintentos con x-intentos, fallidos e inbox)
   Feature/Mensajeria/ObraRegistradaTest.php (002: válido, inválido, repetido, misma obra, datos incompletos)
   Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
-  Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php
+  Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php (alcanza con saldo justo, 008), ReservaSaldoTest.php (008)
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
+  Unit/Cobros/Dominio/CobroTest.php (008: número, 30 días calendario, año de emisión en La Paz)
   Feature/Contratos/ConsultarContratosTest.php (006: saldo con y sin cobros y reservas, 400, 403 por rol)
+  Feature/Contratos/RestriccionesSagaTest.php (008: una reserva vigente por planilla, cobro y número únicos, sin columna de saldo)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Cobros/ResumirCobrosTest.php (009: datos de prueba, pendiente ya vencido, bordes de hoy y hoy + 30 en La Paz, 403 por rol)
-  Feature/Mensajeria/ReservarSaldoTest.php
+  Feature/Cobros/ConsultarCobroTest.php (008: formato, 404, no choca con resumen, 403 por rol, 401)
+  Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
+  Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
+                      fallos y datos inválidos)
+  Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
+                      cobro tardío, correlativo por año en La Paz)
 ```
 
 ## Reglas
@@ -84,7 +104,9 @@ tests/
 
 ## Ejemplo de punta a punta
 
-Mensaje `comando.finanzas.ReservarSaldo` → `MensajeriaConsumir` → `ReservarSaldoManejador` (inbox) → `ReservarSaldo::ejecutar` → `Contrato::reservar(monto)` → repositorio + outbox `SaldoReservado` o `SaldoInsuficiente`, en una transacción.
+Mensaje `comando.finanzas.ReservarSaldo` → `MensajeriaConsumir` → `ReservarSaldoManejador` (inbox, `LectorDatos`) → `ReservarSaldo::ejecutar` → `ContratoRepositorio::consultarPorObra(obraId, bloquear: true)` (fila del contrato `FOR UPDATE` y saldo) → `SaldoContrato::alcanzaPara(monto)` → `ReservaSaldo::reservar` → repositorio + outbox `SaldoReservado` o `SaldoInsuficiente`, en una transacción.
+
+Orden de bloqueos (sin ciclos): `ReservarSaldo` bloquea el contrato; `EmitirCobro` y `LiberarReserva` bloquean la reserva y luego el contrato. Así, quien calcula el saldo nunca ve un cobro recién creado con su reserva todavía `RESERVADA` (ni al revés).
 
 ## Pruebas
 

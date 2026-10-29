@@ -109,14 +109,14 @@ class ConsumidorTest extends TestCase
     public function test_un_tipo_sin_consumidor_va_directo_a_fallidos(): void
     {
         $id = (string) Str::uuid();
-        $this->canal->encolar('finanzas', $this->sobre($id, 'ReservarSaldo', ['planillaId' => $id]), 'comando.finanzas.ReservarSaldo');
+        $this->canal->encolar('finanzas', $this->sobre($id, 'CerrarConsumos', ['planillaId' => $id]), 'comando.materiales.CerrarConsumos');
 
         $this->artisan('mensajeria:consumir')->assertSuccessful();
 
         $this->assertSame(1, $this->canal->entregas);
         $fallido = $this->unicoFallido();
-        $this->assertSame('El tipo ReservarSaldo no tiene consumidor en la cola finanzas.', $fallido['encabezados']['x-error']);
-        $this->assertSame('comando.finanzas.ReservarSaldo', $fallido['encabezados']['x-clave-origen']);
+        $this->assertSame('El tipo CerrarConsumos no tiene consumidor en la cola finanzas.', $fallido['encabezados']['x-error']);
+        $this->assertSame('comando.materiales.CerrarConsumos', $fallido['encabezados']['x-clave-origen']);
         $this->assertSame(0, MensajeProcesado::query()->count());
     }
 
@@ -203,7 +203,12 @@ final class RepositorioQueFalla implements ContratoRepositorio
         throw new RuntimeException('la base no responde');
     }
 
-    public function consultarPorObra(string $obraId): ?ContratoConsultado
+    public function consultarPorObra(string $obraId, bool $bloquear = false): ?ContratoConsultado
+    {
+        throw new RuntimeException('la base no responde');
+    }
+
+    public function bloquear(string $contratoId): void
     {
         throw new RuntimeException('la base no responde');
     }

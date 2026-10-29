@@ -4,7 +4,7 @@ Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`; 006 y 009: `GET /contratos` (saldo calculado al leer), `GET /cobros` y `GET /cobros/resumen`; 008: participa en la saga «aprobar planilla» (`ReservarSaldo`, `EmitirCobro`, `LiberarReserva`), `GET /cobros/{id}` y la tarea diaria `cobros:marcar-vencidos` (00:10 en La Paz, con `php artisan schedule:work`). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
@@ -20,6 +20,9 @@ Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md`
 composer install
 php artisan serve --port=8083   # levantar
 php artisan migrate             # aplicar migraciones
+php artisan mensajeria:consumir # consumir la cola finanzas (proceso largo)
+php artisan mensajeria:publicar # publicar el outbox (proceso largo)
+php artisan schedule:work       # tareas programadas (cobros vencidos a las 00:10 en La Paz)
 php artisan test                # pruebas
 vendor/bin/phpstan analyse      # análisis estático (larastan, nivel 6)
 vendor/bin/pint --test          # formato

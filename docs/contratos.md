@@ -28,6 +28,8 @@ Roles: `admin`, `gerente`. Paginado (convenciones): `pagina`, `tamano`, `orden`,
 
 ### GET /cobros/{id} · 008
 Roles: `admin`, `gerente`. Mismo objeto que en la lista. (El gateway lo usa para el detalle del cobro de una planilla, solo para `admin` y `gerente`; el número del cobro lo guarda Obras en la planilla y lo ven todos los que ven la planilla.)
+- `id`: uuid. La ruta se registra después de `GET /cobros/resumen` y solo acepta un uuid, así «resumen» no se toma como id.
+- Errores: `404` si no existe o el `id` no es un uuid (el contrato no define un código propio: responde el genérico `RUTA_NO_ENCONTRADA`) · `403 SIN_PERMISO`.
 
 ### GET /cobros/resumen · 009
 Roles: `admin`, `gerente`.
@@ -37,6 +39,10 @@ Roles: `admin`, `gerente`.
 - `porVencer30Dias`: cobros `PENDIENTE` con `venceEn` entre hoy y hoy + 30 días, ambos incluidos (el que vence hoy todavía no está vencido). Un cobro cuenta en un solo grupo.
 - `cantidad`: número de cobros; `monto`: suma de su `montoNeto` con 2 decimales (`0` si no hay).
 - Errores: `403 SIN_PERMISO`.
+
+### Tarea programada · 008
+
+`php artisan cobros:marcar-vencidos`, programada con el scheduler de Laravel (`routes/console.php`) cada día a las 00:10 hora de La Paz: los cobros `PENDIENTE` con `vence_en` anterior a hoy (fecha en `America/La_Paz`) pasan a `VENCIDO`. Idempotente. Para que corra hace falta el scheduler: `php artisan schedule:work` en desarrollo o `php artisan schedule:run` cada minuto en el despliegue.
 
 ### Capa 2
 
@@ -62,17 +68,25 @@ Todo mensaje va en el sobre común (convenciones), con `origen: "finanzas"` y, a
 
 ### ObraRegistrada (002)
 
-- Valida el contrato. Si es válido crea `contrato` con `saldo_disponible = monto` y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
+- Valida el contrato. Si es válido crea `contrato` (su saldo disponible empieza igual al monto: se calcula al leer) y publica `ContratoRegistrado`. Si no, publica `ContratoRechazado` con `motivo`: uno o varios de estos textos, en este orden y unidos con «; »: «El monto del contrato debe ser mayor a 0», «El plazo del contrato debe ser mayor a 0 días», «El anticipo y la retención deben estar entre 0 % y 100 %», «El anticipo más la retención deben sumar menos de 100 %».
 - `monto` y los porcentajes se aceptan como número (o texto numérico) y se redondean a 2 decimales; `plazoDias`, entero; `firmadoEn`, `AAAA-MM-DD`.
 - Idempotente: un `id` ya procesado no hace nada, y si la obra ya tiene contrato (`obra_id` único) tampoco se crea otro ni se publica nada.
 - Un mensaje con datos incompletos (sin `obraId` uuid, sin `contrato` o con campos que no tienen el tipo anterior) no se rechaza: va directo a `plataforma.fallidos`.
+
+### Saga «aprobar planilla» (008)
+
+Finanzas es participante: Obras orquesta y le envía comandos a la cola `finanzas`; cada respuesta lleva el `correlacionId` del comando (el id de la saga en Obras). Los tres comandos son idempotentes por el `id` del mensaje (`mensaje_procesado`) y además por las reglas de abajo. Datos que faltan o mal formados (`planillaId`, `obraId` o `reservaId` que no son uuid; `monto` que no es número o no es mayor a 0) van directo a `plataforma.fallidos`. `monto` se acepta como número o texto numérico y se redondea a 2 decimales.
+
+- **`ReservarSaldo {planillaId, obraId, monto}`**: en una transacción, bloquea la fila del contrato de la obra (`FOR UPDATE`) y calcula su saldo disponible (monto − cobros − reservas `RESERVADA`). Si la planilla ya tiene una reserva `RESERVADA`, responde de nuevo `SaldoReservado` con esa misma (no crea otra). Si el saldo alcanza (saldo justo incluido), crea la `reserva_saldo` `RESERVADA` y responde `SaldoReservado {planillaId, reservaId}`; si no, `SaldoInsuficiente {planillaId, motivo: "Saldo del contrato insuficiente"}`. Una obra sin contrato no debería llegar (solo una obra con contrato tiene planillas): se trata como error, se reintenta y termina en fallidos (en Obras, el paso 2 vence).
+- **`EmitirCobro {planillaId, reservaId, monto}`**: bloquea la reserva. Si la planilla ya tiene cobro, responde `CobroEmitido` con el existente. Si la reserva no está `RESERVADA` (liberada o consumida), `CobroFallido {planillaId, motivo: "No se pudo emitir el cobro: la reserva de saldo ya no está vigente"}`. Si no, crea el `cobro` con `numero` `COB-<año>-<NNNN>` (siguiente correlativo del año de emisión), `emitido_en` = hoy en `America/La_Paz`, `vence_en` = `emitido_en` + 30 días, `PENDIENTE` y `monto_neto` = `monto`; marca la reserva `CONSUMIDA` y responde `CobroEmitido {planillaId, cobroId, numero, venceEn}` (`venceEn` en `AAAA-MM-DD`). Ante cualquier otro error al emitir (la reserva no existe o es de otra planilla, el `monto` no es el reservado, falla al guardar), `CobroFallido` con «No se pudo emitir el cobro por un error en Finanzas»; el error se registra en el log.
+- **`LiberarReserva {planillaId, reservaId}`**: si la reserva de esa planilla está `RESERVADA`, la marca `LIBERADA` (el monto vuelve al saldo) y publica `ReservaLiberada {planillaId, reservaId}` (nadie lo escucha; queda en el log). Si ya estaba liberada o consumida, o no existe para esa planilla, no cambia nada ni publica nada.
 
 ### Reintentos y fallidos
 
 Igual en todos los servicios. El reintento y el envío a fallidos se publican por el exchange por defecto, con el cuerpo original sin tocar y el mismo `message_id`, y luego se confirma el original.
 
 - Si procesar un mensaje falla, se vuelve a publicar en la cola `finanzas`. Al tercer intento fallido se publica en la cola `plataforma.fallidos`.
-- Van directo a `plataforma.fallidos`, sin reintentos: un cuerpo que no es JSON, un sobre incompleto o con `version` distinta de 1, datos incompletos, y un `tipo` sin consumidor en la cola `finanzas` (por ahora todo lo que no es `ObraRegistrada`, por ejemplo los comandos de la 008).
+- Van directo a `plataforma.fallidos`, sin reintentos: un cuerpo que no es JSON, un sobre incompleto o con `version` distinta de 1, datos incompletos, y un `tipo` sin consumidor en la cola `finanzas` (hoy, todo lo que no es `ObraRegistrada`, `ReservarSaldo`, `EmitirCobro` ni `LiberarReserva`).
 
 | Encabezado | Valor |
 |---|---|

@@ -32,14 +32,17 @@ final class ContratoRepositorioEloquent implements ContratoRepositorio
             'plazo_dias' => $contrato->plazoDias,
             'anticipo_pct' => number_format($contrato->anticipoPct, 2, '.', ''),
             'retencion_pct' => number_format($contrato->retencionPct, 2, '.', ''),
-            'saldo_disponible' => $contrato->saldoDisponible()->aDecimal(),
             'firmado_en' => $contrato->firmadoEn->format('Y-m-d'),
         ]);
     }
 
-    public function consultarPorObra(string $obraId): ?ContratoConsultado
+    public function consultarPorObra(string $obraId, bool $bloquear = false): ?ContratoConsultado
     {
-        $fila = ContratoModelo::query()->where('obra_id', $obraId)->first();
+        $consulta = ContratoModelo::query()->where('obra_id', $obraId);
+        if ($bloquear) {
+            $consulta->lockForUpdate();
+        }
+        $fila = $consulta->first();
         if ($fila === null) {
             return null;
         }
@@ -64,6 +67,11 @@ final class ContratoRepositorioEloquent implements ContratoRepositorio
                 totalReservado: self::dinero($reservado),
             ),
         );
+    }
+
+    public function bloquear(string $contratoId): void
+    {
+        ContratoModelo::query()->whereKey($contratoId)->lockForUpdate()->first();
     }
 
     /** La suma llega como texto (PostgreSQL), número (SQLite de las pruebas) o 0 si no hay filas. */

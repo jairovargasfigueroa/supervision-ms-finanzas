@@ -40,7 +40,6 @@ class ListarCobrosTest extends TestCase
                 'plazo_dias' => 300,
                 'anticipo_pct' => '10.00',
                 'retencion_pct' => '7.00',
-                'saldo_disponible' => '1250000.00',
                 'firmado_en' => '2026-10-20',
             ]);
         }

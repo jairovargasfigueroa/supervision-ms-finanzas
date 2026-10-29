@@ -26,6 +26,22 @@ class SaldoContratoTest extends TestCase
         $this->assertSame(1208117.9, $saldo->disponible()->aNumero());
     }
 
+    public function test_alcanza_con_saldo_justo_y_no_alcanza_por_un_centavo(): void
+    {
+        $saldo = new SaldoContrato(Dinero::desde('100000.00'), Dinero::desde('30000.00'), Dinero::desde('20000.00'));
+
+        $this->assertTrue($saldo->alcanzaPara(Dinero::desde('49999.99')));
+        $this->assertTrue($saldo->alcanzaPara(Dinero::desde('50000.00')), 'Saldo justo.');
+        $this->assertFalse($saldo->alcanzaPara(Dinero::desde('50000.01')));
+    }
+
+    public function test_dinero_compara_en_centavos(): void
+    {
+        $this->assertTrue(Dinero::desde('0.10')->sumar(Dinero::desde('0.20'))->esIgualA(Dinero::desde('0.30')));
+        $this->assertTrue(Dinero::desde('0.29')->esMenorQue(Dinero::desde('0.30')));
+        $this->assertFalse(Dinero::desde('0.30')->esMenorQue(Dinero::desde('0.30')));
+    }
+
     public function test_dinero_suma_y_resta_en_centavos(): void
     {
         $this->assertSame('0.30', Dinero::desde('0.10')->sumar(Dinero::desde('0.20'))->aDecimal());

@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $plazo_dias
  * @property string $anticipo_pct
  * @property string $retencion_pct
- * @property string $saldo_disponible
  * @property CarbonImmutable $firmado_en
  */
 class ContratoModelo extends Model
@@ -39,7 +38,6 @@ class ContratoModelo extends Model
             'plazo_dias' => 'integer',
             'anticipo_pct' => 'decimal:2',
             'retencion_pct' => 'decimal:2',
-            'saldo_disponible' => 'decimal:2',
             'firmado_en' => 'immutable_date',
         ];
     }
