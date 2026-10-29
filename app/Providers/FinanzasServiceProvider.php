@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Infraestructura\Persistencia\CobroRepositorioEloquent;
 use App\Compartido\Infraestructura\Auth\ValidadorTokenKeycloak;
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConexionRabbit;
@@ -27,6 +29,9 @@ class FinanzasServiceProvider extends ServiceProvider
         // Puertos del contexto Contratos (002).
         $this->app->bind(ContratoRepositorio::class, ContratoRepositorioEloquent::class);
         $this->app->bind(PublicadorEventos::class, PublicadorEventosOutbox::class);
+
+        // Puertos del contexto Cobros (006).
+        $this->app->bind(CobroRepositorio::class, CobroRepositorioEloquent::class);
 
         // Conecta recién en la primera publicación o consumo (002).
         $this->app->singleton(CanalMensajes::class, fn () => new ConexionRabbit(

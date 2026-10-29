@@ -6,6 +6,7 @@ use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
 use App\Compartido\Infraestructura\Mensajeria\ConsumidorBase;
 use App\Compartido\Infraestructura\Mensajeria\MensajeProcesado;
 use App\Compartido\Infraestructura\Mensajeria\Sobre;
+use App\Contratos\Aplicacion\ContratoConsultado;
 use App\Contratos\Aplicacion\Puertos\ContratoRepositorio;
 use App\Contratos\Dominio\Contrato;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -198,6 +199,11 @@ final class RepositorioQueFalla implements ContratoRepositorio
     }
 
     public function guardar(Contrato $contrato): void
+    {
+        throw new RuntimeException('la base no responde');
+    }
+
+    public function consultarPorObra(string $obraId): ?ContratoConsultado
     {
         throw new RuntimeException('la base no responde');
     }

@@ -13,7 +13,7 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 | plazo_dias | int | > 0 |
 | anticipo_pct | numeric(5,2) | 0 a 100 |
 | retencion_pct | numeric(5,2) | 0 a 100; anticipo + retención < 100 |
-| saldo_disponible | numeric(14,2) | monto − cobros − reservas vigentes; al crearse, igual al monto |
+| saldo_disponible | numeric(14,2) | monto − cobros − reservas vigentes; al crearse, igual al monto. `GET /contratos` (006) no lo lee: calcula el saldo con `cobro` y `reserva_saldo` |
 | firmado_en | date | |
 
 ### reserva_saldo
@@ -22,8 +22,10 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 | id | uuid | PK |
 | contrato_id | uuid | FK contrato |
 | planilla_id | uuid | ref Obras |
-| monto | numeric | |
-| estado | varchar | `RESERVADA`, `LIBERADA`, `CONSUMIDA` |
+| monto | numeric(14,2) | |
+| estado | varchar(20) | `RESERVADA`, `LIBERADA`, `CONSUMIDA` |
+
+Se crea en la 006 (solo lectura: total reservado y saldo); la escribe la saga de la 008.
 
 ### cobro
 | Campo | Tipo | Notas |
@@ -32,10 +34,12 @@ Base propia: `finanzas_db`. Ningún otro servicio la lee. Las referencias a otro
 | contrato_id | uuid | FK contrato |
 | planilla_id | uuid | ref Obras, único |
 | numero | varchar | |
-| monto_neto | numeric | |
+| monto_neto | numeric(14,2) | |
 | emitido_en | date | |
 | vence_en | date | |
-| estado | varchar | `PENDIENTE`, `VENCIDO` |
+| estado | varchar(20) | `PENDIENTE`, `VENCIDO` |
+
+Se crea en la 006 (solo lectura: `GET /cobros` y total cobrado); la escribe la saga de la 008.
 
 ### outbox_evento
 | Campo | Tipo | Notas |

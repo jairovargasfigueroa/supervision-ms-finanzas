@@ -1,6 +1,8 @@
 <?php
 
+use App\Cobros\Infraestructura\Http\CobroController;
 use App\Compartido\Infraestructura\Auth\MiddlewareToken;
+use App\Contratos\Infraestructura\Http\ContratoController;
 use Illuminate\Support\Facades\Route;
 
 // Todas las rutas exigen token (lo agrega bootstrap/app.php al grupo api); /salud es la única excepción.
@@ -8,6 +10,12 @@ Route::get('/salud', fn () => response()->json(['estado' => 'ok']))
     ->withoutMiddleware(MiddlewareToken::class);
 
 // Rutas del negocio: se agregan con cada funcionalidad (006 en adelante) y quedan protegidas sin hacer nada más.
+
+// 006 · Consultar obra: contrato con su saldo y cobros, solo para admin y gerente.
+Route::middleware('rol:admin,gerente')->group(function () {
+    Route::get('/contratos', [ContratoController::class, 'listar']);
+    Route::get('/cobros', [CobroController::class, 'listar']);
+});
 
 // Ruta de reserva: cualquier otra ruta, con cualquier método, pasa primero por el token y luego responde 404.
 Route::any('{ruta}', fn () => abort(404))->where('ruta', '.*')->fallback();
