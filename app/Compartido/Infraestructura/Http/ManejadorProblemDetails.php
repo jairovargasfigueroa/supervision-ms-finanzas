@@ -17,7 +17,7 @@ final class ManejadorProblemDetails
         400 => ['DATOS_INVALIDOS', 'Datos inválidos'],
         401 => ['NO_AUTENTICADO', 'No autenticado'],
         403 => ['SIN_PERMISO', 'Sin permiso'],
-        404 => ['RECURSO_NO_ENCONTRADO', 'No encontrado'],
+        404 => ['RUTA_NO_ENCONTRADA', 'No encontrado'],
         413 => ['ARCHIVO_DEMASIADO_GRANDE', 'Demasiado grande'],
         429 => ['DEMASIADAS_PETICIONES', 'Demasiadas peticiones'],
         500 => ['ERROR_INTERNO', 'Error interno'],
