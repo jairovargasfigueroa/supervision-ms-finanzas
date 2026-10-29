@@ -11,10 +11,12 @@ Route::get('/salud', fn () => response()->json(['estado' => 'ok']))
 
 // Rutas del negocio: se agregan con cada funcionalidad (006 en adelante) y quedan protegidas sin hacer nada más.
 
-// 006 · Consultar obra: contrato con su saldo y cobros, solo para admin y gerente.
+// 006 · Consultar obra y 009 · Consultar tablero: contrato con su saldo, cobros y su resumen, solo para admin y gerente.
 Route::middleware('rol:admin,gerente')->group(function () {
     Route::get('/contratos', [ContratoController::class, 'listar']);
     Route::get('/cobros', [CobroController::class, 'listar']);
+    // 009 · Consultar tablero. Va antes de la futura `GET /cobros/{id}` (008) para que «resumen» no se tome como id.
+    Route::get('/cobros/resumen', [CobroController::class, 'resumen']);
 });
 
 // Ruta de reserva: cualquier otra ruta, con cualquier método, pasa primero por el token y luego responde 404.

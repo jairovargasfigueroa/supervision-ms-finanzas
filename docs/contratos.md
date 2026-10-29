@@ -32,6 +32,11 @@ Roles: `admin`, `gerente`. Mismo objeto que en la lista. (El gateway lo usa para
 ### GET /cobros/resumen · 009
 Roles: `admin`, `gerente`.
 `{ "vencidos": { "cantidad": 1, "monto": 41881.80 }, "porVencer30Dias": { "cantidad": 2, "monto": 90000.00 } }`
+- Cobros de todas las obras, sin parámetros. «Hoy» es la fecha actual en `America/La_Paz` (convenciones).
+- `vencidos`: cobros `VENCIDO` y también los `PENDIENTE` con `venceEn` anterior a hoy (un cobro `PENDIENTE` pasa a `VENCIDO` al día siguiente de su vencimiento, reglas del negocio; se cuentan aunque todavía no se haya cambiado su estado guardado).
+- `porVencer30Dias`: cobros `PENDIENTE` con `venceEn` entre hoy y hoy + 30 días, ambos incluidos (el que vence hoy todavía no está vencido). Un cobro cuenta en un solo grupo.
+- `cantidad`: número de cobros; `monto`: suma de su `montoNeto` con 2 decimales (`0` si no hay).
+- Errores: `403 SIN_PERMISO`.
 
 ### Capa 2
 

@@ -34,14 +34,14 @@ app/
       Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
                       ObraRegistradaManejador.php, ReservarSaldoManejador.php
   Cobros/                       # cobros al cliente: los lee la 006, los emite la 008
-    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO)
+    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días)
     Aplicacion/
-      CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato)
-      Puertos/        CobroRepositorio.php (listar paginado; ORDENES)
-      CasosUso/       ListarCobros.php (006)
+      CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009)
+      Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen)
+      CasosUso/       ListarCobros.php (006), ResumirCobros.php (009)
     Infraestructura/
-      Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId)
-      Http/           CobroController.php, CobroResource.php, ListarCobrosRequest.php
+      Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate)
+      Http/           CobroController.php, CobroResource.php, ListarCobrosRequest.php, ResumenCobrosResource.php (009)
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
@@ -58,6 +58,7 @@ tests/
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
   Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php
+  Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
   Feature/Contratos/ConsultarContratosTest.php (006: saldo con y sin cobros y reservas, 400, 403 por rol)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Mensajeria/ReservarSaldoTest.php
