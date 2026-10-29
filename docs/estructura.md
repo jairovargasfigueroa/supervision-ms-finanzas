@@ -33,7 +33,8 @@ database/migrations/  una migración por tabla y funcionalidad
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
 tests/
-  Feature/Compartido/SaludTest.php, AutenticacionTest.php (claves RSA de prueba; el JWKS se sirve con Http::fake)
+  Utilidades/TokensPrueba.php  (trait: claves RSA de prueba, JWKS servido con Http::fake, firmar() y firmarConRoles(roles, azp))
+  Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
   Unit/Contratos/Dominio/ContratoTest.php
   Feature/Contratos/ConsultarContratosTest.php
   Feature/Mensajeria/ReservarSaldoTest.php

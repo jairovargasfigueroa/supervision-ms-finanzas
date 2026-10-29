@@ -5,5 +5,5 @@ Requisitos y diseño: `docs/specs/001-iniciar-sesion/` de la carpeta que agrupa 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Middleware `rol:...` que lee `realm_access.roles` del token ya validado
-- [ ] Utilidad de pruebas para firmar tokens por rol
+- [x] Utilidad de pruebas para firmar tokens por rol
 - [ ] Pruebas 401/403/200
