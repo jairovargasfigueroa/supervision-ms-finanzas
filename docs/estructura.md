@@ -93,6 +93,9 @@ tests/
   Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
   Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
                       fallos y datos inválidos)
+  Feature/Semilla/DatosPruebaSeederTest.php (011, D = 2026-10-28 y 2027-01-20: dos cargas sin duplicar, saldos con
+                      GET /contratos, números y estados, GET /cobros y /cobros/resumen, la serie sigue en 0004, sin
+                      outbox, no pisa, choque con otra clave, guarda)
   Feature/Semilla/VaciarDatosPruebaTest.php (011: vacía el negocio, conserva migrations, recarga, guarda)
   Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
                       cobro tardío, correlativo por año en La Paz)
