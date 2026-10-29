@@ -11,25 +11,37 @@ Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, sche
 ```
 app/
   Compartido/
-    Dominio/          ReglaNegocioException.php, Dinero.php (redondeo a 2)
+    Dominio/          ReglaNegocioException.php, Dinero.php (redondeo a 2, sumar, restar), CriteriosPagina.php (tamano > 100 →
+                      PAGINACION_INVALIDA), Pagina.php ({ items, total, pagina, tamano })
     Infraestructura/
-      Http/           ManejadorProblemDetails.php (registrado en bootstrap/app.php), MiddlewareRequestId.php
+      Http/           ManejadorProblemDetails.php (registrado en bootstrap/app.php; ReglaNegocioException con su código y estado,
+                      ValidationException → 400 DATOS_INVALIDOS con errores[]), MiddlewareRequestId.php
       Auth/           ValidadorTokenKeycloak.php, MiddlewareToken.php, MiddlewareRol.php (alias `rol`), UsuarioActual.php,
                       RolesEfectivos.php (función pura: roles que cuentan según azp)
       Mensajeria/     CanalMensajes.php (puerto del broker: publicar, consumir, cerrar), ConexionRabbit.php (lo implementa con
                       php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
                       MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
-    Dominio/          Contrato.php, ReservaSaldo.php, EstadoReserva.php
+    Dominio/          Contrato.php, ReservaSaldo.php (008), EstadoReserva.php, SaldoContrato.php (monto − cobrado − reservado, 006)
     Aplicacion/
-      Puertos/        ContratoRepositorio.php, PublicadorEventos.php
-      CasosUso/       RegistrarContrato.php (+ ResultadoRegistrarContrato.php), ReservarSaldo.php, LiberarReserva.php,
-                      ConsultarContrato.php
+      ContratoConsultado.php (lo que lee GET /contratos: datos + SaldoContrato)
+      Puertos/        ContratoRepositorio.php (consultarPorObra: suma cobros y reservas vigentes), PublicadorEventos.php
+      CasosUso/       RegistrarContrato.php (+ ResultadoRegistrarContrato.php), ReservarSaldo.php, LiberarReserva.php (008),
+                      ConsultarContrato.php (006)
     Infraestructura/
       Persistencia/   ContratoModelo.php, ReservaSaldoModelo.php, ContratoRepositorioEloquent.php
       Http/           ContratoController.php, ContratoResource.php, ConsultarContratosRequest.php
       Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
                       ObraRegistradaManejador.php, ReservarSaldoManejador.php
+  Cobros/                       # cobros al cliente: los lee la 006, los emite la 008
+    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO)
+    Aplicacion/
+      CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato)
+      Puertos/        CobroRepositorio.php (listar paginado; ORDENES)
+      CasosUso/       ListarCobros.php (006)
+    Infraestructura/
+      Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId)
+      Http/           CobroController.php, CobroResource.php, ListarCobrosRequest.php
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
@@ -44,8 +56,10 @@ tests/
   Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
-  Unit/Contratos/Dominio/ContratoTest.php
-  Feature/Contratos/ConsultarContratosTest.php
+  Unit/Compartido/CriteriosPaginaTest.php
+  Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php
+  Feature/Contratos/ConsultarContratosTest.php (006: saldo con y sin cobros y reservas, 400, 403 por rol)
+  Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Mensajeria/ReservarSaldoTest.php
 ```
 

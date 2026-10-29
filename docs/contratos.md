@@ -15,10 +15,16 @@ Sin token · `200 {"estado":"ok"}` (no toca la base ni RabbitMQ)
 Roles: `admin`, `gerente`.
 `[{ "id", "obraId", "monto": 1250000.00, "plazoDias": 300, "anticipoPct": 10, "retencionPct": 7, "firmadoEn": "2026-10-20", "saldoDisponible": 1180000.00, "totalCobrado": 41881.80, "totalReservado": 0.00 }]`
 (lista con 0 o 1 elemento).
+- `obraId`: uuid, obligatorio. Una obra sin contrato: `[]`.
+- Saldo (reglas del negocio, «Contrato»), calculado al leer: `totalCobrado` = suma de `montoNeto` de los cobros del contrato (`PENDIENTE` o `VENCIDO`); `totalReservado` = suma de las reservas `RESERVADA` (las `LIBERADA` y `CONSUMIDA` no cuentan: la consumida ya está en su cobro); `saldoDisponible` = `monto` − `totalCobrado` − `totalReservado`. Montos con 2 decimales.
+- Errores: `400 DATOS_INVALIDOS` (`obraId` ausente o que no es uuid, con `errores[]`) · `403 SIN_PERMISO`.
 
 ### GET /cobros?obraId=&estado= · 006, 008
 Roles: `admin`, `gerente`. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `venceEn asc`. Cada elemento:
 `[{ "id", "numero": "COB-2027-0003", "obraId", "planillaId", "montoNeto": 41881.80, "emitidoEn": "2027-04-02", "venceEn": "2027-05-02", "estado": "PENDIENTE" }]`
+- `obraId` (uuid) y `estado` (`PENDIENTE` o `VENCIDO`): opcionales; sin `obraId`, los cobros de todas las obras. `obraId` es la obra del contrato del cobro.
+- `orden`: `venceEn` o `emitidoEn`; `direccion`: `asc` o `desc` (desempata por `id`).
+- Errores: `400 PAGINACION_INVALIDA` (`tamano` mayor a 100) · `400 DATOS_INVALIDOS` (otro parámetro mal formado: `obraId` que no es uuid, `estado` desconocido, `pagina` o `tamano` menor a 1, `orden` o `direccion` desconocidos; con `errores[]`) · `403 SIN_PERMISO`.
 
 ### GET /cobros/{id} · 008
 Roles: `admin`, `gerente`. Mismo objeto que en la lista. (El gateway lo usa para el detalle del cobro de una planilla, solo para `admin` y `gerente`; el número del cobro lo guarda Obras en la planilla y lo ven todos los que ven la planilla.)

@@ -43,6 +43,22 @@ final readonly class Dinero
         return $this->centavos > 0;
     }
 
+    public function sumar(self $otro): self
+    {
+        return new self($this->centavos + $otro->centavos);
+    }
+
+    public function restar(self $otro): self
+    {
+        return new self($this->centavos - $otro->centavos);
+    }
+
+    /** Número para el JSON (hasta 2 decimales; un monto entero como `1180000.00` sale `1180000`). */
+    public function aNumero(): float
+    {
+        return $this->centavos / 100;
+    }
+
     /** Texto con 2 decimales y punto, para guardar en `numeric(14,2)`. */
     public function aDecimal(): string
     {
