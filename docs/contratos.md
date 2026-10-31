@@ -20,7 +20,7 @@ Roles: `admin`, `gerente`.
 - Errores: `400 DATOS_INVALIDOS` (`obraId` ausente o que no es uuid, con `errores[]`) · `403 SIN_PERMISO`.
 
 ### GET /cobros?obraId=&estado= · 006, 008
-Roles: `admin`, `gerente`. Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `venceEn asc`. Cada elemento:
+Roles: `admin`, `gerente`. Quién llama: gateway (ERP) y el servicio de IA en la carga inicial (401), con el token de `ia-reportes` (rol `gerente`). Paginado (convenciones): `pagina`, `tamano`, `orden`, `direccion`; responde `{ items, total, pagina, tamano }` con orden por defecto `venceEn asc`. Cada elemento:
 `[{ "id", "numero": "COB-2027-0003", "obraId", "planillaId", "montoNeto": 41881.80, "emitidoEn": "2027-04-02", "venceEn": "2027-05-02", "estado": "PENDIENTE" }]`
 - `obraId` (uuid) y `estado` (`PENDIENTE` o `VENCIDO`): opcionales; sin `obraId`, los cobros de todas las obras. `obraId` es la obra del contrato del cobro.
 - `orden`: `venceEn` o `emitidoEn`; `direccion`: `asc` o `desc` (desempata por `id`).
