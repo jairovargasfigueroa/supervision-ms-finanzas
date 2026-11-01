@@ -37,4 +37,36 @@ class CorteResumenTest extends TestCase
             'fin de enero' => ['2027-01-31T12:00:00-04:00', '2027-01-31', '2027-03-02'],
         ];
     }
+
+    public function test_con_otro_numero_de_dias_para_cobros_por_vencer(): void
+    {
+        // 501: hoy + `dias` (1 a 90), con el mismo hoy en La Paz.
+        $corte = CorteResumen::al(new DateTimeImmutable('2026-10-30T02:00:00Z'), 15);
+
+        $this->assertSame('2026-10-29', $corte->hoy->format('Y-m-d'));
+        $this->assertSame('2026-11-13', $corte->limitePorVencer->format('Y-m-d'));
+    }
+
+    #[DataProvider('vencimientos')]
+    public function test_dias_hasta_el_vencimiento(string $vence, int $dias): void
+    {
+        $corte = CorteResumen::al(new DateTimeImmutable('2026-10-30T02:00:00Z'));
+
+        $this->assertSame($dias, $corte->diasHasta(new DateTimeImmutable($vence)));
+    }
+
+    /**
+     * @return array<string, array{string, int}>
+     */
+    public static function vencimientos(): array
+    {
+        return [
+            'vence hoy' => ['2026-10-29', 0],
+            'mañana' => ['2026-10-30', 1],
+            'venció hace 10 días' => ['2026-10-19', -10],
+            'otro mes' => ['2026-12-01', 33],
+            // La fecha guardada llega a las 00:00 UTC: cuenta su fecha, no la hora.
+            'fecha en UTC' => ['2026-11-13T00:00:00Z', 15],
+        ];
+    }
 }

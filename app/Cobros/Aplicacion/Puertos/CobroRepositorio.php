@@ -3,6 +3,7 @@
 namespace App\Cobros\Aplicacion\Puertos;
 
 use App\Cobros\Aplicacion\CobroConsultado;
+use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -29,6 +30,13 @@ interface CobroRepositorio
      * `vence_en` entre `$corte->hoy` y `$corte->limitePorVencer`, ambos incluidos.
      */
     public function resumir(CorteResumen $corte): ResumenCobros;
+
+    /**
+     * Cobros por vencer (y vencidos si `$incluirVencidos`) con las mismas condiciones que `resumir`, de una obra (la de
+     * su contrato) o de todas, ordenados por `vence_en` y `numero`, hasta `$limite` (501). Los totales cuentan todos
+     * los que cumplen el filtro; los vencidos, solo si se incluyen (si no, en cero).
+     */
+    public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer;
 
     /** Id (uuid) para un cobro nuevo (008). */
     public function siguienteId(): string;

@@ -29,7 +29,9 @@ class ServidorMcpFinanzas extends Server
     ];
 
     /** @var array<int|string, Tool|class-string<Tool>|array<int, Tool|class-string<Tool>>> */
-    protected array $tools = [];
+    protected array $tools = [
+        CobrosPorVencerHerramienta::class,
+    ];
 
     /**
      * Solo los métodos de herramientas y del saludo: `resources/*`, `prompts/*`, `completion/complete` y

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Mensajeria;
 
 use App\Cobros\Aplicacion\CobroConsultado;
+use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
@@ -166,6 +167,11 @@ final readonly class CobroRepositorioQueFalla implements CobroRepositorio
     public function resumir(CorteResumen $corte): ResumenCobros
     {
         return $this->real->resumir($corte);
+    }
+
+    public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer
+    {
+        return $this->real->porVencer($corte, $incluirVencidos, $obraId, $limite);
     }
 
     public function siguienteId(): string
