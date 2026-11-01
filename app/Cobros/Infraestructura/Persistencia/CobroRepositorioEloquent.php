@@ -3,6 +3,7 @@
 namespace App\Cobros\Infraestructura\Persistencia;
 
 use App\Cobros\Aplicacion\CobroConsultado;
+use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Aplicacion\TotalCobros;
@@ -13,8 +14,10 @@ use App\Cobros\Dominio\NumeroCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Dominio\Pagina;
+use Closure;
 use DateTimeImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -101,20 +104,89 @@ final class CobroRepositorioEloquent implements CobroRepositorio
 
     public function resumir(CorteResumen $corte): ResumenCobros
     {
-        // `whereDate` compara solo la fecha, igual en PostgreSQL y en el SQLite de las pruebas.
-        $hoy = $corte->hoy->format('Y-m-d');
-        $vencidos = CobroModelo::query()->where(function (Builder $consulta) use ($hoy) {
-            $consulta->where('estado', EstadoCobro::Vencido->value)
-                ->orWhere(fn (Builder $pendiente) => $pendiente
-                    ->where('estado', EstadoCobro::Pendiente->value)
-                    ->whereDate('vence_en', '<', $hoy));
-        });
-        $porVencer = CobroModelo::query()
-            ->where('estado', EstadoCobro::Pendiente->value)
-            ->whereDate('vence_en', '>=', $hoy)
-            ->whereDate('vence_en', '<=', $corte->limitePorVencer->format('Y-m-d'));
+        return new ResumenCobros(
+            self::total(CobroModelo::query()->where(self::vencidos($corte))),
+            self::total(CobroModelo::query()->where(self::porVencerHasta($corte))),
+        );
+    }
 
-        return new ResumenCobros(self::total($vencidos), self::total($porVencer));
+    public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer
+    {
+        $consulta = self::deLaObra(self::conObra(), $obraId)->where(function (Builder $consulta) use ($corte, $incluirVencidos) {
+            $consulta->where(self::porVencerHasta($corte));
+            if ($incluirVencidos) {
+                $consulta->orWhere(self::vencidos($corte));
+            }
+        });
+        // Uno de más para saber si se recortó.
+        $filas = $consulta
+            ->orderBy('cobro.vence_en')
+            ->orderBy('cobro.numero')
+            ->limit($limite + 1)
+            ->get();
+
+        return new CobrosPorVencer(
+            corte: $corte,
+            cobros: $filas->take($limite)->map(fn (CobroModelo $fila) => self::consultado($fila))->values()->all(),
+            vencidos: $incluirVencidos
+                ? self::total(self::deLaObra(CobroModelo::query(), $obraId)->where(self::vencidos($corte)))
+                : new TotalCobros(0, Dinero::desde(0)),
+            porVencer: self::total(self::deLaObra(CobroModelo::query(), $obraId)->where(self::porVencerHasta($corte))),
+            truncado: $filas->count() > $limite,
+        );
+    }
+
+    /**
+     * Solo los cobros del contrato de la obra, si se indica (501).
+     *
+     * @param  Builder<CobroModelo>  $consulta
+     * @return Builder<CobroModelo>
+     */
+    private static function deLaObra(Builder $consulta, ?string $obraId): Builder
+    {
+        if ($obraId === null) {
+            return $consulta;
+        }
+
+        return $consulta->whereIn(
+            'cobro.contrato_id',
+            fn (QueryBuilder $contratos) => $contratos->select('id')->from('contrato')->where('obra_id', $obraId),
+        );
+    }
+
+    /**
+     * Vencidos (009): `VENCIDO`, o `PENDIENTE` con `vence_en` anterior a hoy. `whereDate` compara solo la fecha, igual
+     * en PostgreSQL y en el SQLite de las pruebas.
+     *
+     * @return Closure(Builder<CobroModelo>): void
+     */
+    private static function vencidos(CorteResumen $corte): Closure
+    {
+        $hoy = $corte->hoy->format('Y-m-d');
+
+        return function (Builder $consulta) use ($hoy): void {
+            $consulta->where('cobro.estado', EstadoCobro::Vencido->value)
+                ->orWhere(fn (Builder $pendiente) => $pendiente
+                    ->where('cobro.estado', EstadoCobro::Pendiente->value)
+                    ->whereDate('cobro.vence_en', '<', $hoy));
+        };
+    }
+
+    /**
+     * Por vencer (009): `PENDIENTE` con `vence_en` entre hoy y el límite del corte, ambos incluidos.
+     *
+     * @return Closure(Builder<CobroModelo>): void
+     */
+    private static function porVencerHasta(CorteResumen $corte): Closure
+    {
+        $hoy = $corte->hoy->format('Y-m-d');
+        $limite = $corte->limitePorVencer->format('Y-m-d');
+
+        return function (Builder $consulta) use ($hoy, $limite): void {
+            $consulta->where('cobro.estado', EstadoCobro::Pendiente->value)
+                ->whereDate('cobro.vence_en', '>=', $hoy)
+                ->whereDate('cobro.vence_en', '<=', $limite);
+        };
     }
 
     public function siguienteId(): string
@@ -177,7 +249,7 @@ final class CobroRepositorioEloquent implements CobroRepositorio
      */
     private static function total(Builder $consulta): TotalCobros
     {
-        $fila = $consulta->toBase()->selectRaw('COUNT(*) AS cantidad, COALESCE(SUM(monto_neto), 0) AS monto')->first();
+        $fila = $consulta->toBase()->selectRaw('COUNT(*) AS cantidad, COALESCE(SUM(cobro.monto_neto), 0) AS monto')->first();
         $monto = $fila->monto ?? 0;
 
         // La suma llega como texto (PostgreSQL) o número (SQLite de las pruebas).

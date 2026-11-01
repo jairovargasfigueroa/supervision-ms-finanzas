@@ -4,7 +4,7 @@ Obligatorio para todo el código de este servicio. Si algo no encaja, propón el
 
 ## Librerías
 
-Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
+Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `laravel/mcp` 1.1 (501: servidor MCP de solo lectura en `POST /mcp`; esquemas con el constructor `Illuminate\JsonSchema`), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
 
 ## Árbol (DDD + Hexagonal)
 
@@ -44,20 +44,27 @@ app/
       Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
                       ObraRegistradaManejador.php, ReservarSaldoManejador.php, LiberarReservaManejador.php (008)
   Cobros/                       # cobros al cliente: los lee la 006, los emite la 008
-    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días),
-                      Cobro.php (008: emitir, vence a los 30 días), NumeroCobro.php (008: COB-<año>-<NNNN>)
+    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días;
+                      501: hoy + `dias`), Cobro.php (008: emitir, vence a los 30 días), NumeroCobro.php (008: COB-<año>-<NNNN>)
     Aplicacion/
-      CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009)
+      CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009),
+      CobrosPorVencer.php (501: hoy, cobros hasta el límite, totales de todos y truncado)
       Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen;
-                      008: deLaPlanilla, siguienteCorrelativo del año, guardar, buscar, marcarVencidos)
+                      008: deLaPlanilla, siguienteCorrelativo del año, guardar, buscar, marcarVencidos; 501: porVencer, con las
+                      mismas condiciones que resumir)
       CasosUso/       ListarCobros.php (006), ResumirCobros.php (009), EmitirCobro.php (+ ResultadoEmitirCobro.php),
-                      ConsultarCobro.php, MarcarCobrosVencidos.php (008)
+                      ConsultarCobro.php, MarcarCobrosVencidos.php (008), ConsultarCobrosPorVencer.php (501: obra sin contrato →
+                      OBRA_NO_ENCONTRADA)
     Infraestructura/
       Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate;
                       correlativo con MAX y pg_advisory_xact_lock por año)
       Mensajeria/     EmitirCobroManejador.php (008)
       Http/           CobroController.php (listar, mostrar 008, resumen), CobroResource.php, ListarCobrosRequest.php,
                       ResumenCobrosResource.php (009)
+      Mcp/            ServidorMcpFinanzas.php (501: laravel/mcp, solo herramientas, sin recursos ni prompts),
+                      CobrosPorVencerHerramienta.php (501: esquemas estrictos, validación propia → ARGUMENTO_INVALIDO sin consultar
+                      la base, anotaciones de solo lectura, errores como resultado, una línea JSON de registro por llamada y,
+                      en PostgreSQL, transacción de solo lectura con statement_timeout de 5 s)
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`),
                       VaciarDatosPrueba.php (011: `datos-prueba:vaciar`, con GuardaDatosPrueba)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
@@ -70,6 +77,8 @@ database/seeders/     DatosPruebaSeeder.php (011: lee datos/finanzas.json, copia
 routes/console.php    scheduler: `cobros:marcar-vencidos` cada día a las 00:10 en America/La_Paz (008)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
+routes/ai.php         501: `Mcp::web('/mcp', ServidorMcpFinanzas::class)->middleware(['token', 'rol:agente_ia'])` (lo carga laravel/mcp;
+                      `GET` y `DELETE /mcp` responden 405)
 tests/
   Utilidades/TokensPrueba.php  (trait: claves RSA de prueba, JWKS servido con Http::fake, firmar() y firmarConRoles(roles, azp))
   Utilidades/CanalMensajesFalso.php  (doble en memoria de CanalMensajes: guarda lo publicado y simula las colas)
@@ -89,6 +98,8 @@ tests/
   Feature/Contratos/RestriccionesSagaTest.php (008: una reserva vigente por planilla, cobro y número únicos, sin columna de saldo)
   Feature/Cobros/ListarCobrosTest.php (006: filtros, paginación, orden, 400, PAGINACION_INVALIDA, 403 por rol)
   Feature/Cobros/ResumirCobrosTest.php (009: datos de prueba, pendiente ya vencido, bordes de hoy y hoy + 30 en La Paz, 403 por rol)
+  Feature/Cobros/ServidorMcpTest.php (501: /mcp 401/403/200 y 405, tools/list exacto, cobros_por_vencer con fechas fijas igual al
+                      REST, truncado, argumentos inválidos sin consultar la base, OBRA_NO_ENCONTRADA, registro, solo lectura)
   Feature/Cobros/ConsultarCobroTest.php (008: formato, 404, no choca con resumen, 403 por rol, 401)
   Feature/Cobros/MarcarCobrosVencidosTest.php (008: bordes en La Paz, idempotente, programada 00:10 La Paz)
   Feature/Mensajeria/ReservarSaldoTest.php, EmitirCobroTest.php, LiberarReservaTest.php (008: respuestas, repetidos,
