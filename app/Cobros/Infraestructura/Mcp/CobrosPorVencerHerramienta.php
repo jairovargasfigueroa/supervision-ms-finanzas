@@ -6,8 +6,12 @@ use App\Cobros\Aplicacion\CasosUso\ConsultarCobrosPorVencer;
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\TotalCobros;
+use App\Compartido\Dominio\ReglaNegocioException;
+use App\Compartido\Infraestructura\Http\MiddlewareRequestId;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -15,6 +19,7 @@ use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Throwable;
 
 /**
  * `cobros_por_vencer` (501): cobros pendientes que vencen en los próximos días y, si se piden, los vencidos, con
@@ -34,6 +39,12 @@ class CobrosPorVencerHerramienta extends Tool
 
     public const DIAS_MAXIMOS = 90;
 
+    /** Tiempo máximo de consulta (501, diseño, «Respuestas compactas»). */
+    public const TIEMPO_MAXIMO_MS = 5000;
+
+    /** Mensaje para el modelo (`docs/mensajes.md`, pasos de la ejecución). */
+    private const MENSAJE_ERROR_INTERNO = 'La consulta falló en el servicio.';
+
     protected string $name = 'cobros_por_vencer';
 
     protected string $title = 'Cobros por vencer';
@@ -42,29 +53,87 @@ class CobrosPorVencerHerramienta extends Tool
 
     public function __construct(private readonly ConsultarCobrosPorVencer $consultar) {}
 
+    /**
+     * Errores como resultado (`isError: true`), no del protocolo: `ARGUMENTO_INVALIDO` (sin consultar la base),
+     * `OBRA_NO_ENCONTRADA` (la obra no tiene contrato) y `ERROR_INTERNO` (cualquier otro fallo, también una consulta
+     * de más de 5 s; el detalle queda solo en el log). Cada llamada deja una línea JSON en el log con `herramienta`,
+     * `argumentos`, `filas`, `duracionMs` y `requestId` (y `codigo` si falló); nunca el token.
+     */
     public function handle(Request $request): Response|ResponseFactory
     {
+        $inicio = hrtime(true);
         $argumentos = $request->all();
-        $problemas = self::validar($argumentos);
-        if ($problemas !== []) {
-            return self::error('ARGUMENTO_INVALIDO', implode('; ', array_slice($problemas, 0, 5)));
+        $filas = 0;
+        $codigo = null;
+
+        try {
+            $problemas = self::validar($argumentos);
+            if ($problemas !== []) {
+                $codigo = 'ARGUMENTO_INVALIDO';
+
+                return self::error($codigo, implode('; ', array_slice($problemas, 0, 5)));
+            }
+
+            $resultado = $this->consultarSoloLectura(
+                $argumentos['dias'] ?? self::DIAS_POR_DEFECTO,
+                $argumentos['incluirVencidos'] ?? true,
+                $argumentos['obraId'] ?? null,
+            );
+            $filas = count($resultado->cobros);
+
+            return Response::structured(self::salida($resultado));
+        } catch (ReglaNegocioException $e) {
+            if ($e->codigo !== 'OBRA_NO_ENCONTRADA') {
+                $codigo = 'ERROR_INTERNO';
+                report($e);
+
+                return self::error($codigo, self::MENSAJE_ERROR_INTERNO);
+            }
+            $codigo = 'OBRA_NO_ENCONTRADA';
+
+            return self::error($codigo, 'La obra pedida no existe.');
+        } catch (Throwable $e) {
+            $codigo = 'ERROR_INTERNO';
+            report($e);
+
+            return self::error($codigo, self::MENSAJE_ERROR_INTERNO);
+        } finally {
+            Log::info((string) json_encode(array_filter([
+                'herramienta' => $this->name(),
+                'argumentos' => (object) $argumentos,
+                'filas' => $filas,
+                'duracionMs' => intdiv(hrtime(true) - $inicio, 1_000_000),
+                'requestId' => request()->header(MiddlewareRequestId::ENCABEZADO),
+                'codigo' => $codigo,
+            ], fn (mixed $valor): bool => $valor !== null), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
+    }
 
-        $dias = $argumentos['dias'] ?? self::DIAS_POR_DEFECTO;
-        $incluirVencidos = $argumentos['incluirVencidos'] ?? true;
-        $obraId = $argumentos['obraId'] ?? null;
+    /**
+     * Llama al caso de uso. En PostgreSQL va en una transacción de solo lectura con un tiempo máximo de consulta de
+     * 5 s (`statement_timeout`); el SQLite de las pruebas no tiene ninguno de los dos.
+     */
+    private function consultarSoloLectura(mixed $dias, mixed $incluirVencidos, mixed $obraId): CobrosPorVencer
+    {
         \assert(is_int($dias) && is_bool($incluirVencidos) && ($obraId === null || is_string($obraId)));
-
         // `CarbonImmutable::now()` respeta `Carbon::setTestNow()` en las pruebas.
-        $resultado = $this->consultar->ejecutar(
+        $consultar = fn (): CobrosPorVencer => $this->consultar->ejecutar(
             CarbonImmutable::now(),
             $dias,
             $incluirVencidos,
             $obraId,
             self::COBROS_MAXIMOS,
         );
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return $consultar();
+        }
 
-        return Response::structured(self::salida($resultado));
+        return DB::transaction(function () use ($consultar): CobrosPorVencer {
+            DB::statement('SET TRANSACTION READ ONLY');
+            DB::statement('SET LOCAL statement_timeout = '.self::TIEMPO_MAXIMO_MS);
+
+            return $consultar();
+        });
     }
 
     /**

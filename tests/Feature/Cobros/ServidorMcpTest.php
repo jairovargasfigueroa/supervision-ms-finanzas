@@ -2,13 +2,27 @@
 
 namespace Tests\Feature\Cobros;
 
+use App\Cobros\Aplicacion\CobroConsultado;
+use App\Cobros\Aplicacion\CobrosPorVencer;
+use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\ResumenCobros;
+use App\Cobros\Dominio\Cobro;
+use App\Cobros\Dominio\CorteResumen;
+use App\Cobros\Dominio\EstadoCobro;
 use App\Cobros\Infraestructura\Persistencia\CobroModelo;
+use App\Cobros\Infraestructura\Persistencia\CobroRepositorioEloquent;
+use App\Compartido\Dominio\CriteriosPagina;
+use App\Compartido\Dominio\Pagina;
 use App\Contratos\Infraestructura\Persistencia\ContratoModelo;
 use Carbon\CarbonImmutable;
+use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\TestCase;
 use Tests\Utilidades\TokensPrueba;
 
@@ -315,6 +329,68 @@ class ServidorMcpTest extends TestCase
         $this->assertSame($ordenados, $vencimientos);
     }
 
+    /**
+     * Error de herramienta: resultado con `isError` y el JSON `{codigo, mensaje}` como texto, sin `structuredContent`.
+     *
+     * @param  array<string, mixed>  $resultado
+     * @return array{codigo: string, mensaje: string}
+     */
+    private function errorDe(array $resultado): array
+    {
+        $this->assertTrue($resultado['isError']);
+        $this->assertArrayNotHasKey('structuredContent', $resultado);
+        $error = json_decode($resultado['content'][0]['text'], true);
+        $this->assertIsArray($error);
+        $this->assertSame(['codigo', 'mensaje'], array_keys($error));
+
+        return $error;
+    }
+
+    public function test_obra_sin_contrato_es_obra_no_encontrada(): void
+    {
+        $this->assertSame(
+            ['codigo' => 'OBRA_NO_ENCONTRADA', 'mensaje' => 'La obra pedida no existe.'],
+            $this->errorDe($this->llamar(['obraId' => self::OBRA_INEXISTENTE])),
+        );
+    }
+
+    public function test_un_fallo_de_la_base_es_error_interno_sin_el_detalle(): void
+    {
+        $this->app->bind(CobroRepositorio::class, fn () => new CobroRepositorioQueFallaAlLeer(new CobroRepositorioEloquent));
+
+        $resultado = $this->llamar();
+
+        $this->assertSame(
+            ['codigo' => 'ERROR_INTERNO', 'mensaje' => 'La consulta falló en el servicio.'],
+            $this->errorDe($resultado),
+        );
+        $this->assertStringNotContainsString('secreta', $resultado['content'][0]['text']);
+    }
+
+    public function test_registra_cada_llamada_en_una_linea_json_con_el_x_request_id(): void
+    {
+        $this->cobrosDeBordes();
+        $lineas = [];
+        Log::listen(function (MessageLogged $mensaje) use (&$lineas): void {
+            if (str_starts_with($mensaje->message, '{')) {
+                $lineas[] = json_decode($mensaje->message, true);
+            }
+        });
+
+        $this->llamar(['dias' => 30]);
+        $this->llamar(['obraId' => self::OBRA_INEXISTENTE]);
+
+        $this->assertCount(2, $lineas);
+        $this->assertSame(['herramienta', 'argumentos', 'filas', 'duracionMs', 'requestId'], array_keys($lineas[0]));
+        $this->assertSame('cobros_por_vencer', $lineas[0]['herramienta']);
+        $this->assertSame(['dias' => 30], $lineas[0]['argumentos']);
+        $this->assertSame(5, $lineas[0]['filas']);
+        $this->assertIsInt($lineas[0]['duracionMs']);
+        $this->assertSame(self::REQUEST_ID, $lineas[0]['requestId']);
+        $this->assertSame('OBRA_NO_ENCONTRADA', $lineas[1]['codigo']);
+        $this->assertSame(0, $lineas[1]['filas']);
+    }
+
     public function test_sin_cobros(): void
     {
         $this->assertEquals([
@@ -323,5 +399,56 @@ class ServidorMcpTest extends TestCase
             'totales' => ['vencidos' => ['cantidad' => 0, 'monto' => 0], 'porVencer' => ['cantidad' => 0, 'monto' => 0]],
             'truncado' => false,
         ], $this->salida());
+    }
+}
+
+/** Repositorio cuyas lecturas de cobros por vencer fallan, para probar `ERROR_INTERNO`. */
+final readonly class CobroRepositorioQueFallaAlLeer implements CobroRepositorio
+{
+    public function __construct(private CobroRepositorio $real) {}
+
+    public function listar(?string $obraId, ?EstadoCobro $estado, CriteriosPagina $criterios): Pagina
+    {
+        return $this->real->listar($obraId, $estado, $criterios);
+    }
+
+    public function resumir(CorteResumen $corte): ResumenCobros
+    {
+        return $this->real->resumir($corte);
+    }
+
+    public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer
+    {
+        throw new RuntimeException('SQLSTATE[08006]: conexión secreta caída');
+    }
+
+    public function siguienteId(): string
+    {
+        return $this->real->siguienteId();
+    }
+
+    public function deLaPlanilla(string $planillaId): ?Cobro
+    {
+        return $this->real->deLaPlanilla($planillaId);
+    }
+
+    public function siguienteCorrelativo(int $anio): int
+    {
+        return $this->real->siguienteCorrelativo($anio);
+    }
+
+    public function guardar(Cobro $cobro): void
+    {
+        $this->real->guardar($cobro);
+    }
+
+    public function buscar(string $id): ?CobroConsultado
+    {
+        return $this->real->buscar($id);
+    }
+
+    public function marcarVencidos(DateTimeImmutable $hoy): int
+    {
+        return $this->real->marcarVencidos($hoy);
     }
 }
