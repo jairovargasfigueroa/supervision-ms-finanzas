@@ -4,7 +4,7 @@ Requisitos y diseño: `docs/specs/501-servidores-mcp/` de la carpeta que agrupa 
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] `composer require laravel/mcp` (1.x); ruta `Mcp::web('/mcp', …)` con los *middleware* de token y `rol:agente_ia`
-- [ ] Caso de uso `ConsultarCobrosPorVencer` (reutiliza el cálculo de 009) y herramienta `cobros_por_vencer` con validación de rangos
-- [ ] Errores de herramienta y registro de cada llamada con `X-Request-Id`
-- [ ] Pruebas: 401 / 403 / 200, `tools/list` exacto, `diasParaVencer` y totales con fechas fijas, argumentos maliciosos, solo lectura
+- [x] `composer require laravel/mcp:^1.1` (en Windows, `cmd` se come el `^`: revisar `composer.json`); ruta `Mcp::web('/mcp', …)` con los *middleware* de token y `rol:agente_ia`; aplicar «Cambios a contratos y datos» del diseño en `docs/contratos.md` y `docs/estructura.md`
+- [ ] Caso de uso `ConsultarCobrosPorVencer` (reutiliza el cálculo de 009) y herramienta `cobros_por_vencer` con validación de rangos, máximo 50 cobros con `truncado` (los totales cuentan todos los cobros) y anotaciones `readOnlyHint: true` y `openWorldHint: false`
+- [ ] Errores de herramienta (`ARGUMENTO_INVALIDO` sin consultar la base, `OBRA_NO_ENCONTRADA`, `ERROR_INTERNO`) y registro de cada llamada con `X-Request-Id`
+- [ ] Pruebas: 401 / 403 / 200, `tools/list` exacto (esquemas y anotación), `diasParaVencer` y totales con fechas fijas, `truncado`, argumentos maliciosos, solo lectura

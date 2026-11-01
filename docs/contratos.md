@@ -95,6 +95,22 @@ Igual en todos los servicios. El reintento y el envío a fallidos se publican po
 | `x-cola-origen` | cola de donde salió: `finanzas` |
 | `x-clave-origen` | clave de enrutamiento original, por ejemplo `evento.obras.ObraRegistrada` (al reintentar por el exchange por defecto se pierde) |
 
-## Herramientas MCP (capa 5, solo lectura)
+## Herramientas MCP (capa 5, solo lectura) · 501
 
-`cobros_por_vencer`. Se especifica en la capa 5. (`planillas_estado` es de Obras.)
+Ruta: `POST /mcp` (MCP, HTTP «streamable», sin estado, respuestas JSON; versión común 2025-11-25) · Rol: `agente_ia` (*service account* de `ia-agentes`) · Solo lo llama el servicio de IA
+
+- Mismo token que el REST (`token` y `rol:agente_ia`): sin token o inválido `401 NO_AUTENTICADO`; con token válido sin `agente_ia` (también `gerente` o `admin`) `403 SIN_PERMISO`. `GET` y `DELETE /mcp` responden `405` (no hay sesión ni flujo SSE). Ningún endpoint REST acepta `agente_ia`. (`planillas_estado` es de Obras.)
+- `tools/list` publica solo `cobros_por_vencer`, con `inputSchema` y `outputSchema` (JSON Schema con `additionalProperties: false`) y `annotations: { readOnlyHint: true, openWorldHint: false }`. Sin recursos ni *prompts*.
+- Resultado: `structuredContent` con la salida y el mismo JSON como texto en `content`.
+- Errores de herramienta (resultado con `isError: true` y texto JSON `{"codigo", "mensaje"}`): `ARGUMENTO_INVALIDO` (no cumple el esquema: tipo, formato, rango o campo de más; no consulta la base), `OBRA_NO_ENCONTRADA` (la obra no tiene contrato en Finanzas), `ERROR_INTERNO` (fallo de la base). Una herramienta que no existe es un error del protocolo.
+- Registro: una línea JSON por llamada con `herramienta`, `argumentos`, `filas`, `duracionMs` y `requestId` (`X-Request-Id`); nunca el token.
+
+### `cobros_por_vencer {dias?, incluirVencidos?, obraId?}`
+
+«Devuelve los cobros pendientes que vencen en los próximos días y, si se pide, los vencidos, al día, con totales.»
+
+- Entrada: `dias` (entero 1 a 90; por defecto 15), `incluirVencidos` (booleano; por defecto `true`), `obraId` (uuid, opcional; la obra de su contrato).
+- Salida: `{ "hoy": "2027-04-20", "cobros": [{ "cobroId", "numero", "obraId", "planillaId", "montoNeto", "emitidoEn", "venceEn", "estado", "diasParaVencer" }], "totales": { "vencidos": { "cantidad", "monto" }, "porVencer": { "cantidad", "monto" } }, "truncado" }`.
+- `hoy` en `America/La_Paz`. Por vencer: `PENDIENTE` con `venceEn` entre hoy y hoy + `dias`, ambos incluidos. Vencidos (si `incluirVencidos`): `VENCIDO`, o `PENDIENTE` con `venceEn` anterior a hoy (la misma regla de `GET /cobros/resumen`); si `incluirVencidos` es `false`, `totales.vencidos` es `{ cantidad: 0, monto: 0 }`. `estado` es el guardado (como en `GET /cobros`). `diasParaVencer` = `venceEn − hoy` (negativo si venció).
+- Orden por `venceEn` (y `numero`); máximo 50 cobros, `truncado` si hay más. Los totales cuentan todos los cobros que cumplen el filtro (no solo los 50); `monto` con 2 decimales.
+- Finanzas no guarda el nombre de la obra; el agente lo obtiene de `planillas_estado` o `avance_obra` (Obras).
