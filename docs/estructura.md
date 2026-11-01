@@ -63,7 +63,8 @@ app/
                       ResumenCobrosResource.php (009)
       Mcp/            ServidorMcpFinanzas.php (501: laravel/mcp, solo herramientas, sin recursos ni prompts),
                       CobrosPorVencerHerramienta.php (501: esquemas estrictos, validación propia → ARGUMENTO_INVALIDO sin consultar
-                      la base, anotaciones de solo lectura, errores como resultado y una línea JSON de registro por llamada)
+                      la base, anotaciones de solo lectura, errores como resultado, una línea JSON de registro por llamada y,
+                      en PostgreSQL, transacción de solo lectura con statement_timeout de 5 s)
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`),
                       VaciarDatosPrueba.php (011: `datos-prueba:vaciar`, con GuardaDatosPrueba)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)

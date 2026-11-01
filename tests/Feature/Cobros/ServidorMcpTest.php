@@ -18,7 +18,9 @@ use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -389,6 +391,134 @@ class ServidorMcpTest extends TestCase
         $this->assertSame(self::REQUEST_ID, $lineas[0]['requestId']);
         $this->assertSame('OBRA_NO_ENCONTRADA', $lineas[1]['codigo']);
         $this->assertSame(0, $lineas[1]['filas']);
+    }
+
+    public function test_tools_list_publica_solo_cobros_por_vencer_con_esquemas_estrictos_y_solo_lectura(): void
+    {
+        $herramientas = $this->rpc('tools/list')->assertOk()->json('result.tools');
+
+        $this->assertSame(['cobros_por_vencer'], array_column($herramientas, 'name'));
+        $herramienta = $herramientas[0];
+        $this->assertStringStartsWith('Devuelve ', $herramienta['description']);
+        $this->assertTrue($herramienta['annotations']['readOnlyHint']);
+        $this->assertFalse($herramienta['annotations']['openWorldHint']);
+
+        $entrada = $herramienta['inputSchema'];
+        $this->assertSame('object', $entrada['type']);
+        $this->assertFalse($entrada['additionalProperties']);
+        $this->assertArrayNotHasKey('required', $entrada);
+        $this->assertSame(['dias', 'incluirVencidos', 'obraId'], array_keys($entrada['properties']));
+        $this->assertEquals(['type' => 'integer', 'minimum' => 1, 'maximum' => 90, 'default' => 15], array_intersect_key(
+            $entrada['properties']['dias'],
+            array_flip(['type', 'minimum', 'maximum', 'default']),
+        ));
+        $this->assertSame('boolean', $entrada['properties']['incluirVencidos']['type']);
+        $this->assertTrue($entrada['properties']['incluirVencidos']['default']);
+        $this->assertSame('uuid', $entrada['properties']['obraId']['format']);
+
+        $salida = $herramienta['outputSchema'];
+        $this->assertSame('object', $salida['type']);
+        $this->assertFalse($salida['additionalProperties']);
+        $this->assertSame(['hoy', 'cobros', 'totales', 'truncado'], array_keys($salida['properties']));
+        $this->assertEqualsCanonicalizing(['hoy', 'cobros', 'totales', 'truncado'], $salida['required']);
+        $cobro = $salida['properties']['cobros']['items'];
+        $this->assertSame(50, $salida['properties']['cobros']['maxItems']);
+        $this->assertFalse($cobro['additionalProperties']);
+        $this->assertSame(
+            ['cobroId', 'numero', 'obraId', 'planillaId', 'montoNeto', 'emitidoEn', 'venceEn', 'estado', 'diasParaVencer'],
+            array_keys($cobro['properties']),
+        );
+        $this->assertSame(['vencidos', 'porVencer'], array_keys($salida['properties']['totales']['properties']));
+        $this->assertFalse($salida['properties']['totales']['properties']['vencidos']['additionalProperties']);
+    }
+
+    public function test_una_herramienta_que_no_existe_es_un_error_del_protocolo(): void
+    {
+        $respuesta = $this->rpc('tools/call', ['name' => 'planillas_estado', 'arguments' => (object) []]);
+
+        $respuesta->assertJsonMissingPath('result');
+        $this->assertIsInt($respuesta->json('error.code'));
+    }
+
+    /** @return array<string, array{array<string, mixed>}> */
+    public static function argumentosInvalidos(): array
+    {
+        return [
+            'uuid mal formado' => [['obraId' => 'no-es-uuid']],
+            'inyección' => [['obraId' => "x' OR 1=1"]],
+            'obraId que no es texto' => [['obraId' => ['$ne' => null]]],
+            'dias 0' => [['dias' => 0]],
+            'dias 91' => [['dias' => 91]],
+            'dias 1000' => [['dias' => 1000]],
+            'dias con decimales' => [['dias' => 1.5]],
+            'dias como texto' => [['dias' => '15']],
+            'incluirVencidos como texto' => [['incluirVencidos' => 'true']],
+            'incluirVencidos como número' => [['incluirVencidos' => 1]],
+            'campo de más' => [['limite' => 10]],
+            'periodo de otra herramienta' => [['periodo' => '2027-13']],
+        ];
+    }
+
+    /** @param array<string, mixed> $argumentos */
+    #[DataProvider('argumentosInvalidos')]
+    public function test_argumentos_invalidos_son_argumento_invalido_sin_consultar_la_base(array $argumentos): void
+    {
+        $this->cobrosDeBordes();
+        $consultas = 0;
+        DB::listen(function () use (&$consultas): void {
+            $consultas++;
+        });
+
+        $error = $this->errorDe($this->llamar($argumentos));
+
+        $this->assertSame('ARGUMENTO_INVALIDO', $error['codigo']);
+        $this->assertNotSame('', $error['mensaje']);
+        $this->assertSame(0, $consultas);
+    }
+
+    public function test_una_llamada_valida_si_consulta_la_base(): void
+    {
+        // Control de la prueba anterior: DB::listen sí ve las consultas de la herramienta.
+        $consultas = 0;
+        DB::listen(function () use (&$consultas): void {
+            $consultas++;
+        });
+
+        $this->salida();
+
+        $this->assertGreaterThan(0, $consultas);
+    }
+
+    public function test_solo_lectura_ninguna_tabla_cambia_despues_de_llamar_la_herramienta(): void
+    {
+        $this->cobrosDeBordes();
+        $antes = $this->fotografiar();
+        $this->assertSame(5, $antes['cobro']['conteo']);
+
+        $this->salida();
+        $this->salida(['dias' => 90, 'incluirVencidos' => false]);
+        $this->salida(['obraId' => self::OBRA_ID]);
+        $this->llamar(['obraId' => self::OBRA_INEXISTENTE]);
+        $this->llamar(['dias' => 1000]);
+
+        $this->assertSame($antes, $this->fotografiar());
+    }
+
+    /**
+     * Conteo y suma de verificación de cada tabla de la base.
+     *
+     * @return array<string, array{conteo: int, suma: string}>
+     */
+    private function fotografiar(): array
+    {
+        $foto = [];
+        foreach (Schema::getTableListing(schemaQualified: false) as $tabla) {
+            $filas = DB::table($tabla)->get()->map(fn (object $fila) => (array) $fila)->sortBy(fn (array $fila) => json_encode($fila))->values();
+            $foto[$tabla] = ['conteo' => $filas->count(), 'suma' => hash('sha256', (string) json_encode($filas))];
+        }
+        ksort($foto);
+
+        return $foto;
     }
 
     public function test_sin_cobros(): void
