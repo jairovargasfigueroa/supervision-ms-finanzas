@@ -60,6 +60,7 @@ class RegistrarPagoTest extends TestCase
                 'estado' => 'PAGADO',
                 'pagadoEn' => '2026-10-18',
                 'comprobante' => 'TRF-883412',
+                'envios' => [],
             ]);
 
         $fila = CobroModelo::query()->findOrFail($this->cobroId);

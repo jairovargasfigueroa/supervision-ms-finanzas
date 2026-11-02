@@ -2,6 +2,7 @@
 
 namespace App\Cobros\Aplicacion;
 
+use App\Cobros\Dominio\EnvioCobro;
 use App\Cobros\Dominio\EstadoCobro;
 use App\Compartido\Dominio\Dinero;
 use DateTimeImmutable;
@@ -11,6 +12,9 @@ use DateTimeImmutable;
  */
 final readonly class CobroConsultado
 {
+    /**
+     * @param  list<EnvioCobro>  $envios
+     */
     public function __construct(
         public string $id,
         public string $numero,
@@ -23,5 +27,7 @@ final readonly class CobroConsultado
         /** 201: fecha de pago; null si no está pagado. */
         public ?DateTimeImmutable $pagadoEn = null,
         public ?string $comprobante = null,
+        /** 201: correos que anotó n8n, ordenados por `enviadoEn` (vacío donde no se leen, por ejemplo en el MCP). */
+        public array $envios = [],
     ) {}
 }

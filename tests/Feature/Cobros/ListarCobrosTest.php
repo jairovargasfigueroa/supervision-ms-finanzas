@@ -73,6 +73,7 @@ class ListarCobrosTest extends TestCase
                         'estado' => 'VENCIDO',
                         'pagadoEn' => null,
                         'comprobante' => null,
+                        'envios' => [],
                     ],
                     [
                         'id' => $tarde['id'],
@@ -85,6 +86,7 @@ class ListarCobrosTest extends TestCase
                         'estado' => 'PENDIENTE',
                         'pagadoEn' => null,
                         'comprobante' => null,
+                        'envios' => [],
                     ],
                 ],
                 'total' => 2,

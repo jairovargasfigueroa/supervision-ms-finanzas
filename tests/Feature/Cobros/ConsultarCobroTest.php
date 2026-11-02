@@ -43,6 +43,7 @@ class ConsultarCobroTest extends TestCase
                 'estado' => 'PENDIENTE',
                 'pagadoEn' => null,
                 'comprobante' => null,
+                'envios' => [],
             ]);
     }
 
