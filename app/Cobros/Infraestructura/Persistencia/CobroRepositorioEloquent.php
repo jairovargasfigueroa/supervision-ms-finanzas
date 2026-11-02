@@ -4,8 +4,8 @@ namespace App\Cobros\Infraestructura\Persistencia;
 
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
-use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Aplicacion\TotalCobros;
 use App\Cobros\Dominio\Cobro;

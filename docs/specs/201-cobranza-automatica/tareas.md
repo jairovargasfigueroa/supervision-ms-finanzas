@@ -12,4 +12,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] `POST /cobros/{id}/envios`: idempotente por (`cobro_id`, `tipo`), `201` nuevo o `200` existente
 - [x] Nota de cobro en PDF: librería del diseño, vista Blade, `POST /cobros/{id}/nota-cobro` con la comprobación de coherencia (`422 NOTA_COBRO_INCONSISTENTE`); prueba de que el PDF se genera y trae número, neto y la leyenda
 - [x] Semilla (011): envío `NOTA_COBRO` de los 3 cobros cargados
-- [ ] Pruebas de la spec y del servidor MCP (`cobros_por_vencer` no devuelve cobros `PAGADO`)
+- [x] Pruebas de la spec y del servidor MCP (`cobros_por_vencer` no devuelve cobros `PAGADO`)
