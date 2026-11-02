@@ -5,6 +5,7 @@ namespace App\Cobros\Infraestructura\Http;
 use App\Cobros\Aplicacion\CasosUso\ConsultarCobro;
 use App\Cobros\Aplicacion\CasosUso\ConsultarRecordatorios;
 use App\Cobros\Aplicacion\CasosUso\ListarCobros;
+use App\Cobros\Aplicacion\CasosUso\RegistrarEnvioCobro;
 use App\Cobros\Aplicacion\CasosUso\RegistrarPagoCobro;
 use App\Cobros\Aplicacion\CasosUso\ResumirCobros;
 use App\Compartido\Infraestructura\Auth\UsuarioActual;
@@ -74,5 +75,22 @@ final class CobroController
         return response()->json(
             RecordatoriosResource::make($consultar->ejecutar(CarbonImmutable::now()->toDateTimeImmutable()))->resolve($request),
         );
+    }
+
+    /**
+     * `POST /cobros/{id}/envios` (201, rol `automatizacion`): anota un correo enviado por n8n. `201` si lo crea, `200`
+     * con el existente si el cobro ya tenía un envío de ese tipo.
+     */
+    public function registrarEnvio(RegistrarEnvioRequest $request, string $id, RegistrarEnvioCobro $registrar): JsonResponse
+    {
+        $resultado = $registrar->ejecutar(
+            $id,
+            $request->tipo(),
+            $request->destinatario(),
+            $request->ejecucionN8n(),
+            CarbonImmutable::now()->toDateTimeImmutable(),
+        );
+
+        return response()->json(CobroResource::envio($resultado->envio), $resultado->creado ? 201 : 200);
     }
 }
