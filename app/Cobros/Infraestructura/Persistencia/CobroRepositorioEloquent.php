@@ -5,12 +5,15 @@ namespace App\Cobros\Infraestructura\Persistencia;
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Aplicacion\TotalCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
+use App\Cobros\Dominio\EnvioCobro;
 use App\Cobros\Dominio\EstadoCobro;
 use App\Cobros\Dominio\NumeroCobro;
+use App\Cobros\Dominio\TipoEnvioCobro;
 use App\Compartido\Dominio\CriteriosPagina;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Dominio\Pagina;
@@ -53,7 +56,7 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             ->get();
 
         return new Pagina(
-            items: $filas->map(fn (CobroModelo $fila) => self::consultado($fila))->values()->all(),
+            items: self::conEnvios($filas->values()->all()),
             total: $total,
             pagina: $criterios->pagina,
             tamano: $criterios->tamano,
@@ -64,7 +67,47 @@ final class CobroRepositorioEloquent implements CobroRepositorio
     {
         $fila = self::conObra()->where('cobro.id', $id)->first();
 
-        return $fila === null ? null : self::consultado($fila);
+        return $fila === null ? null : self::conEnvios([$fila])[0];
+    }
+
+    /**
+     * Los cobros con sus envíos (201), leídos en una sola consulta y ordenados por `enviado_en`.
+     *
+     * @param  list<CobroModelo>  $filas
+     * @return list<CobroConsultado>
+     */
+    private static function conEnvios(array $filas): array
+    {
+        $envios = [];
+        if ($filas !== []) {
+            $envios = EnvioCobroModelo::query()
+                ->whereIn('cobro_id', array_map(fn (CobroModelo $fila) => $fila->id, $filas))
+                ->orderBy('enviado_en')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('cobro_id')
+                ->all();
+        }
+
+        return array_map(fn (CobroModelo $fila) => self::consultado(
+            $fila,
+            array_values(array_map(
+                fn (EnvioCobroModelo $envio) => self::envio($envio),
+                isset($envios[$fila->id]) ? $envios[$fila->id]->all() : [],
+            )),
+        ), $filas);
+    }
+
+    public static function envio(EnvioCobroModelo $fila): EnvioCobro
+    {
+        return new EnvioCobro(
+            id: $fila->id,
+            cobroId: $fila->cobro_id,
+            tipo: TipoEnvioCobro::from($fila->tipo),
+            destinatario: $fila->destinatario,
+            enviadoEn: $fila->enviado_en->toDateTimeImmutable(),
+            ejecucionN8n: $fila->ejecucion_n8n,
+        );
     }
 
     public function marcarVencidos(DateTimeImmutable $hoy): int
@@ -88,7 +131,10 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             ->select('cobro.*', 'contrato.obra_id');
     }
 
-    private static function consultado(CobroModelo $fila): CobroConsultado
+    /**
+     * @param  list<EnvioCobro>  $envios
+     */
+    private static function consultado(CobroModelo $fila, array $envios = []): CobroConsultado
     {
         return new CobroConsultado(
             id: $fila->id,
@@ -99,6 +145,9 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
             venceEn: $fila->vence_en->toDateTimeImmutable(),
             estado: EstadoCobro::from($fila->estado),
+            pagadoEn: $fila->pagado_en?->toDateTimeImmutable(),
+            comprobante: $fila->comprobante,
+            envios: $envios,
         );
     }
 
@@ -133,6 +182,29 @@ final class CobroRepositorioEloquent implements CobroRepositorio
                 : new TotalCobros(0, Dinero::desde(0)),
             porVencer: self::total(self::deLaObra(CobroModelo::query(), $obraId)->where(self::porVencerHasta($corte))),
             truncado: $filas->count() > $limite,
+        );
+    }
+
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros
+    {
+        $buscar = fn (Closure $condicion, TipoEnvioCobro $sinEnvio): array => self::conObra()
+            ->where($condicion)
+            ->whereNotExists(fn (QueryBuilder $envios) => $envios
+                ->selectRaw('1')
+                ->from('envio_cobro')
+                ->whereColumn('envio_cobro.cobro_id', 'cobro.id')
+                ->where('envio_cobro.tipo', $sinEnvio->value))
+            ->orderBy('cobro.vence_en')
+            ->orderBy('cobro.numero')
+            ->get()
+            ->map(fn (CobroModelo $fila) => self::consultado($fila))
+            ->values()
+            ->all();
+
+        return new RecordatoriosCobros(
+            corte: $corte,
+            porVencer: $buscar(self::porVencerHasta($corte), TipoEnvioCobro::RecordatorioPorVencer),
+            vencidos: $buscar(self::vencidos($corte), TipoEnvioCobro::RecordatorioVencido),
         );
     }
 
@@ -198,7 +270,31 @@ final class CobroRepositorioEloquent implements CobroRepositorio
     {
         $fila = CobroModelo::query()->where('planilla_id', $planillaId)->first();
 
-        return $fila === null ? null : Cobro::reconstruir(
+        return $fila === null ? null : self::cobro($fila);
+    }
+
+    public function bloquear(string $id): ?Cobro
+    {
+        $fila = CobroModelo::query()->whereKey($id)->lockForUpdate()->first();
+
+        return $fila === null ? null : self::cobro($fila);
+    }
+
+    public function guardarPago(Cobro $cobro): void
+    {
+        // Con el builder (sin los casts del modelo) para guardar el instante con su zona (`timestamptz`).
+        CobroModelo::query()->whereKey($cobro->id)->update([
+            'estado' => $cobro->estado->value,
+            'pagado_en' => $cobro->pagadoEn?->format('Y-m-d'),
+            'comprobante' => $cobro->comprobante,
+            'pago_registrado_por' => $cobro->pagoRegistradoPor,
+            'pago_registrado_en' => $cobro->pagoRegistradoEn?->format('Y-m-d H:i:sP'),
+        ]);
+    }
+
+    private static function cobro(CobroModelo $fila): Cobro
+    {
+        return Cobro::reconstruir(
             id: $fila->id,
             contratoId: $fila->contrato_id,
             planillaId: $fila->planilla_id,
@@ -207,6 +303,10 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
             venceEn: $fila->vence_en->toDateTimeImmutable(),
             estado: EstadoCobro::from($fila->estado),
+            pagadoEn: $fila->pagado_en?->toDateTimeImmutable(),
+            comprobante: $fila->comprobante,
+            pagoRegistradoPor: $fila->pago_registrado_por,
+            pagoRegistradoEn: $fila->pago_registrado_en?->toDateTimeImmutable(),
         );
     }
 

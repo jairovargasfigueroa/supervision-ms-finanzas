@@ -5,6 +5,7 @@ namespace Tests\Feature\Mensajeria;
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -202,5 +203,20 @@ final readonly class CobroRepositorioQueFalla implements CobroRepositorio
     public function marcarVencidos(DateTimeImmutable $hoy): int
     {
         return $this->real->marcarVencidos($hoy);
+    }
+
+    public function bloquear(string $id): ?Cobro
+    {
+        return $this->real->bloquear($id);
+    }
+
+    public function guardarPago(Cobro $cobro): void
+    {
+        $this->real->guardarPago($cobro);
+    }
+
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros
+    {
+        return $this->real->paraRecordar($corte);
     }
 }

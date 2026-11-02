@@ -5,6 +5,7 @@ namespace Tests\Feature\Cobros;
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -264,6 +265,25 @@ class ServidorMcpTest extends TestCase
             'porVencer' => ['cantidad' => 2, 'monto' => 407865.7],
         ], $salida['totales']);
         $this->assertFalse($salida['truncado']);
+    }
+
+    public function test_no_devuelve_ni_cuenta_los_cobros_pagados(): void
+    {
+        $this->cobrosDeBordes();
+        // 201: pagados que, por su vencimiento, serían vencidos o por vencer.
+        foreach (['2026-10-19', '2026-10-25', '2026-10-29', '2026-11-13'] as $venceEn) {
+            $this->cobro($venceEn, 'PAGADO', '5000.00');
+        }
+
+        $salida = $this->salida();
+
+        // Lo mismo que sin los pagados (test_por_defecto_15_dias_con_vencidos_ordenados_por_vencimiento).
+        $this->assertNotContains('PAGADO', array_column($salida['cobros'], 'estado'));
+        $this->assertCount(4, $salida['cobros']);
+        $this->assertEquals([
+            'vencidos' => ['cantidad' => 2, 'monto' => 291134.8],
+            'porVencer' => ['cantidad' => 2, 'monto' => 407865.7],
+        ], $salida['totales']);
     }
 
     public function test_cada_cobro_igual_que_en_get_cobros(): void
@@ -580,5 +600,20 @@ final readonly class CobroRepositorioQueFallaAlLeer implements CobroRepositorio
     public function marcarVencidos(DateTimeImmutable $hoy): int
     {
         return $this->real->marcarVencidos($hoy);
+    }
+
+    public function bloquear(string $id): ?Cobro
+    {
+        return $this->real->bloquear($id);
+    }
+
+    public function guardarPago(Cobro $cobro): void
+    {
+        $this->real->guardarPago($cobro);
+    }
+
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros
+    {
+        return $this->real->paraRecordar($corte);
     }
 }

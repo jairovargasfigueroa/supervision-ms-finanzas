@@ -4,7 +4,7 @@ Obligatorio para todo el código de este servicio. Si algo no encaja, propón el
 
 ## Librerías
 
-Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `laravel/mcp` 1.1 (501: servidor MCP de solo lectura en `POST /mcp`; esquemas con el constructor `Illuminate\JsonSchema`), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
+Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `laravel/mcp` 1.1 (501: servidor MCP de solo lectura en `POST /mcp`; esquemas con el constructor `Illuminate\JsonSchema`), `barryvdh/laravel-dompdf` 3.1.2 (201: nota de cobro en PDF, vista Blade maquetada con tablas, sin recursos remotos), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
 
 ## Árbol (DDD + Hexagonal)
 
@@ -29,7 +29,7 @@ app/
                       ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST),
                       VaciadorTablas.php (todas las tablas del esquema salvo `migrations`, en una transacción: TRUNCATE …
                       RESTART IDENTITY CASCADE en PostgreSQL)
-  Contratos/                    # un contexto por carpeta: Contratos, Cobros, Compras (capa 2)
+  Contratos/                    # un contexto por carpeta: Contratos, Cobros
     Dominio/          Contrato.php, ReservaSaldo.php (008: reservar, consumir, liberar idempotente), EstadoReserva.php,
                       SaldoContrato.php (monto − cobrado − reservado, 006; alcanzaPara, 008)
     Aplicacion/
@@ -43,24 +43,37 @@ app/
       Http/           ContratoController.php, ContratoResource.php, ConsultarContratosRequest.php
       Mensajeria/     PublicadorEventosOutbox.php (implementa PublicadorEventos: `evento.finanzas.<tipo>` al outbox),
                       ObraRegistradaManejador.php, ReservarSaldoManejador.php, LiberarReservaManejador.php (008)
-  Cobros/                       # cobros al cliente: los lee la 006, los emite la 008
-    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30 días;
-                      501: hoy + `dias`), Cobro.php (008: emitir, vence a los 30 días), NumeroCobro.php (008: COB-<año>-<NNNN>)
+  Cobros/                       # cobros al cliente: los lee la 006, los emite la 008, los paga y los cobra n8n la 201
+    Dominio/          EstadoCobro.php (PENDIENTE, VENCIDO; 201: PAGADO), CorteResumen.php (009: hoy en America/La_Paz y hoy + 30
+                      días; 501: hoy + `dias`; 201: hoy + 3), Cobro.php (008: emitir, vence a los 30 días; 201: registrarPago →
+                      COBRO_YA_PAGADO o FECHA_PAGO_INVALIDA), NumeroCobro.php (008: COB-<año>-<NNNN>), TipoEnvioCobro.php y
+                      EnvioCobro.php (201), NotaCobro.php y LineaNotaCobro.php (201: armar con la comprobación de coherencia →
+                      NOTA_COBRO_INCONSISTENTE; líneas del periodo; leyenda)
     Aplicacion/
       CobroConsultado.php (lo que lee GET /cobros, con el obraId del contrato), ResumenCobros.php y TotalCobros.php (GET /cobros/resumen, 009),
-      CobrosPorVencer.php (501: hoy, cobros hasta el límite, totales de todos y truncado)
+      CobrosPorVencer.php (501: hoy, cobros hasta el límite, totales de todos y truncado),
+      RecordatoriosCobros.php (201: hoy, porVencer y vencidos), DatosNotaCobro.php (201: lo que manda n8n para la nota)
       Puertos/        CobroRepositorio.php (listar paginado; ORDENES; resumir: vencidos y por vencer con un CorteResumen;
                       008: deLaPlanilla, siguienteCorrelativo del año, guardar, buscar, marcarVencidos; 501: porVencer, con las
-                      mismas condiciones que resumir)
+                      mismas condiciones que resumir; 201: bloquear (FOR UPDATE), guardarPago, paraRecordar),
+                      EnvioCobroRepositorio.php (201: delCobro, guardar), GeneradorPdfNotaCobro.php (201)
       CasosUso/       ListarCobros.php (006), ResumirCobros.php (009), EmitirCobro.php (+ ResultadoEmitirCobro.php),
                       ConsultarCobro.php, MarcarCobrosVencidos.php (008), ConsultarCobrosPorVencer.php (501: obra sin contrato →
-                      OBRA_NO_ENCONTRADA)
+                      OBRA_NO_ENCONTRADA), RegistrarPagoCobro.php (201: bloquea el cobro, paga y deja CobroPagado en el outbox),
+                      ConsultarRecordatorios.php, RegistrarEnvioCobro.php (+ ResultadoRegistrarEnvio.php: idempotente por
+                      cobro y tipo), GenerarNotaCobro.php (201)
     Infraestructura/
       Persistencia/   CobroModelo.php, CobroRepositorioEloquent.php (une contrato para el obraId; resumir con COUNT y SUM, whereDate;
-                      correlativo con MAX y pg_advisory_xact_lock por año)
+                      correlativo con MAX y pg_advisory_xact_lock por año; 201: envíos en una consulta por página,
+                      recordatorios con NOT EXISTS sobre envio_cobro), EnvioCobroModelo.php, EnvioCobroRepositorioEloquent.php
+                      (201; instantes guardados en UTC con zona)
       Mensajeria/     EmitirCobroManejador.php (008)
-      Http/           CobroController.php (listar, mostrar 008, resumen), CobroResource.php, ListarCobrosRequest.php,
-                      ResumenCobrosResource.php (009)
+      Http/           CobroController.php (listar, mostrar 008, resumen; 201: registrarPago, recordatorios, registrarEnvio,
+                      notaCobro), CobroResource.php (201: pagadoEn, comprobante, envios), ListarCobrosRequest.php,
+                      ResumenCobrosResource.php (009), RegistrarPagoRequest.php, RecordatoriosResource.php,
+                      RegistrarEnvioRequest.php, NotaCobroRequest.php (201)
+      Pdf/            GeneradorPdfDompdf.php (201: vista pdf/nota-cobro con barryvdh/laravel-dompdf, carta), FormatoBolivia.php
+                      (Bs 330.149,10, dd/mm/aaaa, «septiembre 2026»)
       Mcp/            ServidorMcpFinanzas.php (501: laravel/mcp, solo herramientas, sin recursos ni prompts),
                       CobrosPorVencerHerramienta.php (501: esquemas estrictos, validación propia → ARGUMENTO_INVALIDO sin consultar
                       la base, anotaciones de solo lectura, errores como resultado, una línea JSON de registro por llamada y,
@@ -70,10 +83,13 @@ app/
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
 config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
 config/semilla.php    semilla.fecha (SEMILLA_FECHA, fecha de carga D de los datos de prueba, 011)
+config/cobranza.php   cobranza.empresa_nombre (EMPRESA_NOMBRE, «Constructora Andina», 201)
+resources/views/pdf/nota-cobro.blade.php   201: nota de cobro maquetada con tablas (dompdf no admite flexbox ni grid)
 database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
-                      reserva vigente y `cobro.numero` único)
+                      reserva vigente y `cobro.numero` único; 201: datos del pago en `cobro` y tabla `envio_cobro`)
 database/seeders/     DatosPruebaSeeder.php (011: lee datos/finanzas.json, copia de la sección 8 de docs/datos-prueba.md;
-                      calcula número, vencimiento y estado del cobro; insertOrIgnore en una transacción; sin outbox)
+                      calcula número, vencimiento y estado del cobro; 201: envío NOTA_COBRO de cada cobro a las 10:05 de La
+                      Paz del día de emisión; insertOrIgnore en una transacción; sin outbox)
 routes/console.php    scheduler: `cobros:marcar-vencidos` cada día a las 00:10 en America/La_Paz (008)
 routes/api.php        rutas en español según docs/contratos.md, en la raíz (apiPrefix vacío); /salud sin token y el resto
                       en el grupo `token` (alias de MiddlewareToken), que cierra con una ruta de reserva que responde 404
@@ -110,6 +126,14 @@ tests/
   Feature/Semilla/VaciarDatosPruebaTest.php (011: vacía el negocio, conserva migrations, recarga, guarda)
   Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
                       cobro tardío, correlativo por año en La Paz)
+  Feature/Cobros/RestriccionesCobranzaTest.php (201: columnas del pago, un envío de cada tipo por cobro)
+  Feature/Cobros/RegistrarPagoTest.php (201: fechas límite en La Paz, 409, 404, 400, 403 por rol, outbox en la misma transacción)
+  Feature/Cobros/CobrosPagadosTest.php (201: envíos en GET /cobros, filtro PAGADO, totalCobrado, no se vence, resumen)
+  Feature/Cobros/RecordatoriosTest.php (201: bordes hoy, hoy + 3, hoy + 4, ayer, ya recordado, pagado, roles)
+  Feature/Cobros/RegistrarEnvioTest.php (201: 201 nuevo y 200 existente, tipos, 400, 404, roles)
+  Feature/Cobros/NotaCobroTest.php (201: PDF con número, neto y leyenda, cada 422, 400, 404, roles)
+  Feature/Cobros/CobranzaAutomaticaTest.php (201, prueba de la spec: de la emisión al pago con n8n simulado)
+  Unit/Cobros/FormatoBoliviaTest.php (201)
 ```
 
 ## Reglas

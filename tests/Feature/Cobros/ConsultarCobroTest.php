@@ -41,6 +41,9 @@ class ConsultarCobroTest extends TestCase
                 'emitidoEn' => '2026-10-29',
                 'venceEn' => '2026-11-28',
                 'estado' => 'PENDIENTE',
+                'pagadoEn' => null,
+                'comprobante' => null,
+                'envios' => [],
             ]);
     }
 

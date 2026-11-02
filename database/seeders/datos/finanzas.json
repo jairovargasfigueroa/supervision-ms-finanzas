@@ -1,5 +1,5 @@
 {
-  "fuente": "docs/datos-prueba.md, secciones 2 y 8 (copia de la parte de Finanzas; si algo cambia, se cambia allí primero)",
+  "fuente": "docs/datos-prueba.md, secciones 2, 3 y 8 (copia de la parte de Finanzas; si algo cambia, se cambia allí primero)",
   "contratos": [
     {
       "id": "c0000000-0000-4000-8000-000000000001",
@@ -73,6 +73,29 @@
       "planillaId": "d0000000-0000-4000-8000-000000000102",
       "montoNeto": 365764.40,
       "emitidoEn": "D-12"
+    }
+  ],
+  "envios": [
+    {
+      "id": "c3000000-0000-4000-8000-000000000101",
+      "cobroId": "c2000000-0000-4000-8000-000000000101",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-40 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000201",
+      "cobroId": "c2000000-0000-4000-8000-000000000201",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-20 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000102",
+      "cobroId": "c2000000-0000-4000-8000-000000000102",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-12 10:05"
     }
   ]
 }

@@ -4,6 +4,7 @@ namespace App\Cobros\Aplicacion\Puertos;
 
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -38,6 +39,13 @@ interface CobroRepositorio
      */
     public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer;
 
+    /**
+     * Cobros que necesitan recordatorio (201), con las fechas del corte (hoy y hoy + 3): por vencer = `PENDIENTE` con
+     * `vence_en` entre hoy y el límite, sin envío `RECORDATORIO_POR_VENCER`; vencidos = `VENCIDO`, o `PENDIENTE` con
+     * `vence_en` anterior a hoy, sin envío `RECORDATORIO_VENCIDO`. Ordenados por `vence_en` y `numero`.
+     */
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros;
+
     /** Id (uuid) para un cobro nuevo (008). */
     public function siguienteId(): string;
 
@@ -55,6 +63,15 @@ interface CobroRepositorio
 
     /** El cobro con ese id, con el `obraId` de su contrato, o `null` si no existe (`GET /cobros/{id}`, 008). */
     public function buscar(string $id): ?CobroConsultado;
+
+    /**
+     * El cobro con ese id, con su fila bloqueada hasta el fin de la transacción (`FOR UPDATE`), o `null` si no existe
+     * (201: registrar el pago).
+     */
+    public function bloquear(string $id): ?Cobro;
+
+    /** Guarda el pago registrado del cobro: estado, fecha, comprobante y quién y cuándo lo registró (201). */
+    public function guardarPago(Cobro $cobro): void;
 
     /**
      * Pasa a `VENCIDO` los cobros `PENDIENTE` con `vence_en` anterior a `$hoy` (fecha en La Paz, 008).

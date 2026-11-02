@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\EstadoCobro;
+use App\Cobros\Dominio\TipoEnvioCobro;
 use App\Compartido\Dominio\Dinero;
 use App\Compartido\Infraestructura\Semilla\FechaRelativa;
 use App\Compartido\Infraestructura\Semilla\GuardaDatosPrueba;
@@ -15,8 +16,9 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Datos de prueba de Finanzas (011, docs/datos-prueba.md sección 8): 3 contratos, 3 reservas `CONSUMIDA` y 3 cobros,
- * leídos de `datos/finanzas.json` con las fechas relativas a D (`SEMILLA_FECHA` o hoy en La Paz).
+ * Datos de prueba de Finanzas (011, docs/datos-prueba.md sección 8): 3 contratos, 3 reservas `CONSUMIDA`, 3 cobros y,
+ * desde la 201, el envío `NOTA_COBRO` de cada cobro (sin pagos ni recordatorios), leídos de `datos/finanzas.json` con
+ * las fechas relativas a D (`SEMILLA_FECHA` o hoy en La Paz).
  *
  * - Lo derivado se calcula, no se copia: el número del cobro (`COB-<año>-<NNNN>`, correlativo por año de `emitido_en`
  *   en orden de emisión), su vencimiento (+30 días, `Cobro::emitir`) y su estado (`VENCIDO` si vence antes de D). El
@@ -30,9 +32,6 @@ class DatosPruebaSeeder extends Seeder
 {
     public const ARCHIVO = __DIR__.'/datos/finanzas.json';
 
-    /** Lo agrega la 201 (proveedores); si existe, se carga primero. */
-    private const SEEDER_PROVEEDORES = 'Database\\Seeders\\ProveedorSeeder';
-
     public function run(): void
     {
         GuardaDatosPrueba::comprobar();
@@ -44,16 +43,14 @@ class DatosPruebaSeeder extends Seeder
         );
         $datos = self::leerDatos();
 
-        if (class_exists(self::SEEDER_PROVEEDORES)) {
-            $this->call(self::SEEDER_PROVEEDORES);
-        }
-
         $contratos = array_map(fn (array $fila): array => self::contrato($fila, $d), self::lista($datos, 'contratos'));
         $reservas = array_map(fn (array $fila): array => self::reserva($fila), self::lista($datos, 'reservas'));
         $cobros = self::cobros(self::lista($datos, 'cobros'), $d);
+        $envios = array_map(fn (array $fila): array => self::envio($fila, $d), self::lista($datos, 'envios'));
 
-        DB::transaction(function () use ($contratos, $reservas, $cobros): void {
-            foreach (['contrato' => $contratos, 'reserva_saldo' => $reservas, 'cobro' => $cobros] as $tabla => $filas) {
+        DB::transaction(function () use ($contratos, $reservas, $cobros, $envios): void {
+            $tablas = ['contrato' => $contratos, 'reserva_saldo' => $reservas, 'cobro' => $cobros, 'envio_cobro' => $envios];
+            foreach ($tablas as $tabla => $filas) {
                 DB::table($tabla)->insertOrIgnore($filas);
                 self::comprobarInsertados($tabla, $filas);
             }
@@ -61,11 +58,12 @@ class DatosPruebaSeeder extends Seeder
 
         if (isset($this->command)) {
             $this->command->info(sprintf(
-                'Finanzas · datos de prueba con D = %s: %d contratos, %d reservas, %d cobros.',
+                'Finanzas · datos de prueba con D = %s: %d contratos, %d reservas, %d cobros, %d envíos.',
                 $d->format('Y-m-d'),
                 DB::table('contrato')->count(),
                 DB::table('reserva_saldo')->count(),
                 DB::table('cobro')->count(),
+                DB::table('envio_cobro')->count(),
             ));
         }
     }
@@ -145,6 +143,27 @@ class DatosPruebaSeeder extends Seeder
             'monto' => Dinero::desde(self::numero($fila, 'monto'))->aDecimal(),
             // Falla si el estado no es uno de los de la reserva.
             'estado' => EstadoReserva::from(self::texto($fila, 'estado'))->value,
+        ];
+    }
+
+    /**
+     * Fila de `envio_cobro` (201): el correo ya enviado, con su instante en UTC (`D-40 10:05` es la hora de La Paz).
+     *
+     * @param  array<mixed>  $fila
+     * @return array<string, string|null>
+     */
+    private static function envio(array $fila, DateTimeImmutable $d): array
+    {
+        $enviadoEn = new DateTimeImmutable(FechaRelativa::resolver(self::texto($fila, 'enviadoEn'), $d));
+
+        return [
+            'id' => self::texto($fila, 'id'),
+            'cobro_id' => self::texto($fila, 'cobroId'),
+            // Falla si el tipo no es uno de los del envío.
+            'tipo' => TipoEnvioCobro::from(self::texto($fila, 'tipo'))->value,
+            'destinatario' => self::texto($fila, 'destinatario'),
+            'enviado_en' => $enviadoEn->format('Y-m-d H:i:sP'),
+            'ejecucion_n8n' => null,
         ];
     }
 

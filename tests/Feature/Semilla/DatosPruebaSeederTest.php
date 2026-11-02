@@ -16,7 +16,7 @@ use Tests\Utilidades\TokensPrueba;
 /**
  * 011: datos de prueba de Finanzas (docs/datos-prueba.md sección 8). Con D fija: contratos con sus saldos (leídos de
  * `GET /contratos`, porque no se guardan), reservas `CONSUMIDA`, cobros con número por año y estado según D, el
- * resumen del tablero, idempotencia, sin eventos y la guarda.
+ * resumen del tablero, idempotencia, sin eventos y la guarda. Desde la 201, el envío `NOTA_COBRO` de cada cobro.
  */
 class DatosPruebaSeederTest extends TestCase
 {
@@ -47,7 +47,7 @@ class DatosPruebaSeederTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_carga_3_contratos_3_reservas_y_3_cobros_y_la_segunda_carga_no_duplica(): void
+    public function test_carga_3_contratos_3_reservas_3_cobros_y_3_envios_y_la_segunda_carga_no_duplica(): void
     {
         $this->cargar('2026-10-28');
         $primera = $this->foto();
@@ -56,6 +56,7 @@ class DatosPruebaSeederTest extends TestCase
         $this->assertSame(3, DB::table('contrato')->count());
         $this->assertSame(3, DB::table('reserva_saldo')->count());
         $this->assertSame(3, DB::table('cobro')->count());
+        $this->assertSame(3, DB::table('envio_cobro')->count());
         $this->assertSame($primera, $this->foto());
     }
 
@@ -64,7 +65,7 @@ class DatosPruebaSeederTest extends TestCase
         config(['semilla.fecha' => '2026-10-28']);
 
         $this->artisan('db:seed', ['--class' => DatosPruebaSeeder::class, '--force' => true])
-            ->expectsOutputToContain('Finanzas · datos de prueba con D = 2026-10-28: 3 contratos, 3 reservas, 3 cobros.')
+            ->expectsOutputToContain('Finanzas · datos de prueba con D = 2026-10-28: 3 contratos, 3 reservas, 3 cobros, 3 envíos.')
             ->assertSuccessful();
     }
 
@@ -207,6 +208,57 @@ class DatosPruebaSeederTest extends TestCase
         $this->assertSame('2026-06-20', DB::table('contrato')->where('obra_id', self::OBRA_1)->value('firmado_en'));
     }
 
+    public function test_cada_cobro_tiene_su_nota_de_cobro_enviada_a_las_10_05_de_la_paz_del_dia_de_emision(): void
+    {
+        $this->cargar('2026-10-28');
+
+        $this->assertSame([
+            'c3000000-0000-4000-8000-000000000101' => [self::COBRO_101, 'NOTA_COBRO', 'cliente1@correo.test', null],
+            'c3000000-0000-4000-8000-000000000102' => [self::COBRO_102, 'NOTA_COBRO', 'cliente1@correo.test', null],
+            'c3000000-0000-4000-8000-000000000201' => [self::COBRO_201, 'NOTA_COBRO', 'demo1@constructora-andina.test', null],
+        ], DB::table('envio_cobro')->orderBy('id')->get()
+            ->mapWithKeys(fn (object $e): array => [$e->id => [$e->cobro_id, $e->tipo, $e->destinatario, $e->ejecucion_n8n]])
+            ->all());
+
+        // D − 40, D − 20 y D − 12 a las 10:05 de La Paz (14:05 UTC).
+        foreach ([
+            self::COBRO_101 => '2026-09-18T14:05:00Z',
+            self::COBRO_201 => '2026-10-08T14:05:00Z',
+            self::COBRO_102 => '2026-10-16T14:05:00Z',
+        ] as $cobro => $enviadoEn) {
+            $this->getJson('/cobros/'.$cobro, $this->encabezados())
+                ->assertOk()
+                ->assertJsonPath('envios', [['tipo' => 'NOTA_COBRO', 'destinatario' => DB::table('envio_cobro')->where('cobro_id', $cobro)->value('destinatario'), 'enviadoEn' => $enviadoEn]])
+                ->assertJsonPath('pagadoEn', null)
+                ->assertJsonPath('comprobante', null);
+        }
+    }
+
+    public function test_el_dia_d_solo_el_cobro_vencido_necesita_recordatorio(): void
+    {
+        $this->cargar('2026-10-28');
+        // 08:00 en La Paz del día D, la hora de «Recordar cobros».
+        CarbonImmutable::setTestNow('2026-10-28T12:00:00Z');
+
+        $this->getJson('/cobros/recordatorios', ['Authorization' => 'Bearer '.$this->firmarConRoles(['automatizacion', 'gerente'], 'n8n')])
+            ->assertOk()
+            ->assertJsonPath('porVencer', [])
+            ->assertJsonCount(1, 'vencidos')
+            ->assertJsonPath('vencidos.0.numero', 'COB-2026-0001')
+            ->assertJsonPath('vencidos.0.diasVencido', 10);
+    }
+
+    public function test_falla_si_un_envio_choca_con_otro_del_mismo_tipo_que_ya_existe(): void
+    {
+        $this->cargar('2026-10-28');
+        // Otro envío (otro id) de la nota del cobro 101: (`cobro_id`, `tipo`) es único.
+        DB::table('envio_cobro')->where('id', 'c3000000-0000-4000-8000-000000000101')->update(['id' => 'c3000000-0000-4000-8000-000000000999']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('en «envio_cobro» no se pudieron cargar 1 filas');
+        $this->cargar('2026-10-28');
+    }
+
     public function test_falla_y_no_carga_nada_si_un_dato_choca_con_otro_que_ya_existe(): void
     {
         // Otro contrato (otro id) para la obra 1: `obra_id` es único.
@@ -230,6 +282,7 @@ class DatosPruebaSeederTest extends TestCase
         $this->assertSame(1, DB::table('contrato')->count());
         $this->assertSame(0, DB::table('reserva_saldo')->count());
         $this->assertSame(0, DB::table('cobro')->count());
+        $this->assertSame(0, DB::table('envio_cobro')->count());
     }
 
     public function test_se_niega_en_produccion(): void
@@ -283,7 +336,7 @@ class DatosPruebaSeederTest extends TestCase
     private function foto(): array
     {
         $foto = [];
-        foreach (['contrato', 'reserva_saldo', 'cobro'] as $tabla) {
+        foreach (['contrato', 'reserva_saldo', 'cobro', 'envio_cobro'] as $tabla) {
             $foto[$tabla] = DB::table($tabla)->orderBy('id')->get()->map(fn (object $fila): array => (array) $fila)->all();
         }
 

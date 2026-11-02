@@ -1,16 +1,17 @@
 # Servicio Finanzas
 
-Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la capa 2 también lleva proveedores, órdenes de compra y cuentas por pagar. Participa en la saga «aprobar planilla» reservando el saldo y emitiendo el cobro.
+Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la capa 2 (201) registra el pago de los cobros y atiende a los flujos de cobranza de n8n (recordatorios, nota de cobro en PDF, envíos). Participa en la saga «aprobar planilla» reservando el saldo y emitiendo el cobro.
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`; 006 y 009: `GET /contratos` (saldo calculado al leer), `GET /cobros` y `GET /cobros/resumen`; 008: participa en la saga «aprobar planilla» (`ReservarSaldo`, `EmitirCobro`, `LiberarReserva`), `GET /cobros/{id}` y la tarea diaria `cobros:marcar-vencidos` (00:10 en La Paz, con `php artisan schedule:work`). 011: datos de prueba (`DatosPruebaSeeder` y `datos-prueba:vaciar`, solo desarrollo). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1: `GET /salud` y validación del token (toda ruta de la API exige token salvo `/salud`); 001: control por rol con el middleware `rol:...`; 002: mensajería con RabbitMQ (`mensajeria:publicar` y `mensajeria:consumir`, outbox, inbox, reintentos) y registro del contrato al recibir `ObraRegistrada`; 006 y 009: `GET /contratos` (saldo calculado al leer), `GET /cobros` y `GET /cobros/resumen`; 008: participa en la saga «aprobar planilla» (`ReservarSaldo`, `EmitirCobro`, `LiberarReserva`), `GET /cobros/{id}` y la tarea diaria `cobros:marcar-vencidos` (00:10 en La Paz, con `php artisan schedule:work`). 011: datos de prueba (`DatosPruebaSeeder` y `datos-prueba:vaciar`, solo desarrollo). 501: servidor MCP de solo lectura (`POST /mcp`, `cobros_por_vencer`). 201: `POST /cobros/{id}/pago` (admin, publica `CobroPagado`), `pagadoEn`, `comprobante` y `envios` en los cobros, y las rutas de n8n (rol `automatizacion`): `GET /cobros/recordatorios`, `POST /cobros/{id}/envios` y `POST /cobros/{id}/nota-cobro` (PDF). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
 - PHP 8.3 · Laravel 13 (Composer)
 - PostgreSQL (en `.env`: `DB_CONNECTION=pgsql`) · migraciones de Laravel
 - RabbitMQ con `php-amqplib/php-amqplib` 3 · validación de tokens de Keycloak con `firebase/php-jwt` 7 (JWKS del realm)
+- Nota de cobro en PDF con `barryvdh/laravel-dompdf` 3.1.2 (201); `EMPRESA_NOMBRE` en `.env`
 - Pruebas con PHPUnit
 - Puerto: `8083`
 
@@ -36,7 +37,7 @@ Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php 
 
 ## Arquitectura: DDD + Hexagonal
 
-Estructura prevista por contexto (`Contratos`, `Cobros`, `Compras`), dentro de `app/`:
+Estructura por contexto (`Contratos`, `Cobros`), dentro de `app/`:
 
 ```
 app/<Contexto>/
@@ -49,13 +50,13 @@ app/<Contexto>/
 ```
 
 - El dominio no depende de Laravel. Eloquent solo vive en `Infraestructura/Persistencia`.
-- Agregados: `Contrato` (con sus reservas y cobros) y, en la capa 2, `OrdenCompra`.
+- Agregados: `Contrato` (con sus reservas) y `Cobro` (con su pago y sus envíos, 201).
 
 ## Reglas del proyecto
 
 - Lo que este servicio guarda está en `docs/datos.md`; lo que expone y escucha, en `docs/contratos.md`.
 - Saldo disponible = monto − cobros emitidos − reservas vigentes. Una reserva que no alcanza hace fallar la saga.
-- Un cobro por planilla (`planilla_id` único). Una orden de compra por evento de stock bajo (`evento_origen_id` único).
+- Un cobro por planilla (`planilla_id` único). Un envío de cada tipo por cobro (`envio_cobro`, único `cobro_id` + `tipo`, 201). Un cobro `PAGADO` no cambia más.
 - Los eventos se escriben en `outbox_evento` en la misma transacción; los mensajes recibidos se registran en `mensaje_procesado`.
 
 ## Documentación

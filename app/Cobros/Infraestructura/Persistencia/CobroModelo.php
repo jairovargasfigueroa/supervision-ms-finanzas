@@ -6,7 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Fila de `cobro` (docs/datos.md). En la 006 solo se lee; la escribe la saga de la 008.
+ * Fila de `cobro` (docs/datos.md). En la 006 solo se lee; la escribe la saga de la 008 y, al registrar el pago, la 201.
  *
  * @property string $id
  * @property string $contrato_id
@@ -16,6 +16,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable $emitido_en
  * @property CarbonImmutable $vence_en
  * @property string $estado
+ * @property CarbonImmutable|null $pagado_en 201
+ * @property string|null $comprobante 201
+ * @property string|null $pago_registrado_por 201
+ * @property CarbonImmutable|null $pago_registrado_en 201
  * @property string $obra_id solo al leer con el contrato unido (`obra_id` de `contrato`)
  */
 class CobroModelo extends Model
@@ -39,6 +43,8 @@ class CobroModelo extends Model
             'monto_neto' => 'decimal:2',
             'emitido_en' => 'immutable_date',
             'vence_en' => 'immutable_date',
+            'pagado_en' => 'immutable_date',
+            'pago_registrado_en' => 'immutable_datetime',
         ];
     }
 }
