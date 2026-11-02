@@ -11,6 +11,12 @@ Route::get('/salud', fn () => response()->json(['estado' => 'ok']))
 
 // Rutas del negocio: se agregan con cada funcionalidad (006 en adelante) y quedan protegidas sin hacer nada más.
 
+// 201 · Cobranza automática: rutas que llama n8n (rol técnico `automatizacion`, ninguna otra ruta lo acepta).
+// `recordatorios` va antes de `GET /cobros/{id}` (como `resumen`).
+Route::middleware('rol:automatizacion')->group(function () {
+    Route::get('/cobros/recordatorios', [CobroController::class, 'recordatorios']);
+});
+
 // 006 · Consultar obra y 009 · Consultar tablero: contrato con su saldo, cobros y su resumen, solo para admin y gerente.
 Route::middleware('rol:admin,gerente')->group(function () {
     Route::get('/contratos', [ContratoController::class, 'listar']);

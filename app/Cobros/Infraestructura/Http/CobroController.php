@@ -3,6 +3,7 @@
 namespace App\Cobros\Infraestructura\Http;
 
 use App\Cobros\Aplicacion\CasosUso\ConsultarCobro;
+use App\Cobros\Aplicacion\CasosUso\ConsultarRecordatorios;
 use App\Cobros\Aplicacion\CasosUso\ListarCobros;
 use App\Cobros\Aplicacion\CasosUso\RegistrarPagoCobro;
 use App\Cobros\Aplicacion\CasosUso\ResumirCobros;
@@ -65,5 +66,13 @@ final class CobroController
         );
 
         return response()->json(CobroResource::make($cobro)->resolve($request));
+    }
+
+    /** `GET /cobros/recordatorios` (201, rol `automatizacion`): `{ hoy, porVencer[], vencidos[] }`. */
+    public function recordatorios(Request $request, ConsultarRecordatorios $consultar): JsonResponse
+    {
+        return response()->json(
+            RecordatoriosResource::make($consultar->ejecutar(CarbonImmutable::now()->toDateTimeImmutable()))->resolve($request),
+        );
     }
 }

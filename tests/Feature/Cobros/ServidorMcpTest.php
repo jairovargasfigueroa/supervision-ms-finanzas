@@ -5,6 +5,7 @@ namespace Tests\Feature\Cobros;
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -590,5 +591,10 @@ final readonly class CobroRepositorioQueFallaAlLeer implements CobroRepositorio
     public function guardarPago(Cobro $cobro): void
     {
         $this->real->guardarPago($cobro);
+    }
+
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros
+    {
+        return $this->real->paraRecordar($corte);
     }
 }

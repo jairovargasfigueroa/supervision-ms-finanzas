@@ -4,6 +4,7 @@ namespace App\Cobros\Infraestructura\Persistencia;
 
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Aplicacion\TotalCobros;
@@ -181,6 +182,29 @@ final class CobroRepositorioEloquent implements CobroRepositorio
                 : new TotalCobros(0, Dinero::desde(0)),
             porVencer: self::total(self::deLaObra(CobroModelo::query(), $obraId)->where(self::porVencerHasta($corte))),
             truncado: $filas->count() > $limite,
+        );
+    }
+
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros
+    {
+        $buscar = fn (Closure $condicion, TipoEnvioCobro $sinEnvio): array => self::conObra()
+            ->where($condicion)
+            ->whereNotExists(fn (QueryBuilder $envios) => $envios
+                ->selectRaw('1')
+                ->from('envio_cobro')
+                ->whereColumn('envio_cobro.cobro_id', 'cobro.id')
+                ->where('envio_cobro.tipo', $sinEnvio->value))
+            ->orderBy('cobro.vence_en')
+            ->orderBy('cobro.numero')
+            ->get()
+            ->map(fn (CobroModelo $fila) => self::consultado($fila))
+            ->values()
+            ->all();
+
+        return new RecordatoriosCobros(
+            corte: $corte,
+            porVencer: $buscar(self::porVencerHasta($corte), TipoEnvioCobro::RecordatorioPorVencer),
+            vencidos: $buscar(self::vencidos($corte), TipoEnvioCobro::RecordatorioVencido),
         );
     }
 

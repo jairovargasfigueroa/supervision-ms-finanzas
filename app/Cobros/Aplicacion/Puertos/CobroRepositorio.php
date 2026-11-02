@@ -4,6 +4,7 @@ namespace App\Cobros\Aplicacion\Puertos;
 
 use App\Cobros\Aplicacion\CobroConsultado;
 use App\Cobros\Aplicacion\CobrosPorVencer;
+use App\Cobros\Aplicacion\RecordatoriosCobros;
 use App\Cobros\Aplicacion\ResumenCobros;
 use App\Cobros\Dominio\Cobro;
 use App\Cobros\Dominio\CorteResumen;
@@ -37,6 +38,13 @@ interface CobroRepositorio
      * los que cumplen el filtro; los vencidos, solo si se incluyen (si no, en cero).
      */
     public function porVencer(CorteResumen $corte, bool $incluirVencidos, ?string $obraId, int $limite): CobrosPorVencer;
+
+    /**
+     * Cobros que necesitan recordatorio (201), con las fechas del corte (hoy y hoy + 3): por vencer = `PENDIENTE` con
+     * `vence_en` entre hoy y el límite, sin envío `RECORDATORIO_POR_VENCER`; vencidos = `VENCIDO`, o `PENDIENTE` con
+     * `vence_en` anterior a hoy, sin envío `RECORDATORIO_VENCIDO`. Ordenados por `vence_en` y `numero`.
+     */
+    public function paraRecordar(CorteResumen $corte): RecordatoriosCobros;
 
     /** Id (uuid) para un cobro nuevo (008). */
     public function siguienteId(): string;
