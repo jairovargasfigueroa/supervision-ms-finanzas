@@ -11,6 +11,7 @@ Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md`
 - PHP 8.3 · Laravel 13 (Composer)
 - PostgreSQL (en `.env`: `DB_CONNECTION=pgsql`) · migraciones de Laravel
 - RabbitMQ con `php-amqplib/php-amqplib` 3 · validación de tokens de Keycloak con `firebase/php-jwt` 7 (JWKS del realm)
+- Nota de cobro en PDF con `barryvdh/laravel-dompdf` 3.1.2 (201); `EMPRESA_NOMBRE` en `.env`
 - Pruebas con PHPUnit
 - Puerto: `8083`
 

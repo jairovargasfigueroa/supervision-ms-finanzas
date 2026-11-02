@@ -4,7 +4,7 @@ Obligatorio para todo el código de este servicio. Si algo no encaja, propón el
 
 ## Librerías
 
-Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `laravel/mcp` 1.1 (501: servidor MCP de solo lectura en `POST /mcp`; esquemas con el constructor `Illuminate\JsonSchema`), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
+Laravel 13 (Form Requests, API Resources, Eloquent solo en infraestructura, scheduler), `php-amqplib/php-amqplib` 3, `firebase/php-jwt` 7 (JWKS), `dedoc/scramble` 0.13 (OpenAPI en `/docs/api`, solo local), `laravel/mcp` 1.1 (501: servidor MCP de solo lectura en `POST /mcp`; esquemas con el constructor `Illuminate\JsonSchema`), `barryvdh/laravel-dompdf` 3.1.2 (201: nota de cobro en PDF, vista Blade maquetada con tablas, sin recursos remotos), `larastan/larastan` 3 (nivel 6), Laravel Pint, PHPUnit 12. Ejecutar siempre con el PHP de Herd (PowerShell).
 
 ## Árbol (DDD + Hexagonal)
 

@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
 use App\Cobros\Aplicacion\Puertos\EnvioCobroRepositorio;
+use App\Cobros\Aplicacion\Puertos\GeneradorPdfNotaCobro;
 use App\Cobros\Infraestructura\Persistencia\CobroRepositorioEloquent;
+use App\Cobros\Infraestructura\Pdf\GeneradorPdfDompdf;
 use App\Cobros\Infraestructura\Persistencia\EnvioCobroRepositorioEloquent;
 use App\Compartido\Infraestructura\Auth\ValidadorTokenKeycloak;
 use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
@@ -40,6 +42,9 @@ class FinanzasServiceProvider extends ServiceProvider
         $this->app->bind(CobroRepositorio::class, CobroRepositorioEloquent::class);
         // Correos de la cobranza automática (201).
         $this->app->bind(EnvioCobroRepositorio::class, EnvioCobroRepositorioEloquent::class);
+        $this->app->bind(GeneradorPdfNotaCobro::class, fn () => new GeneradorPdfDompdf(
+            empresaNombre: (string) config('cobranza.empresa_nombre'),
+        ));
 
         // Conecta recién en la primera publicación o consumo (002).
         $this->app->singleton(CanalMensajes::class, fn () => new ConexionRabbit(

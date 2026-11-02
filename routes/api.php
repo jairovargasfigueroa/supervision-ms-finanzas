@@ -16,6 +16,7 @@ Route::get('/salud', fn () => response()->json(['estado' => 'ok']))
 Route::middleware('rol:automatizacion')->group(function () {
     Route::get('/cobros/recordatorios', [CobroController::class, 'recordatorios']);
     Route::post('/cobros/{id}/envios', [CobroController::class, 'registrarEnvio']);
+    Route::post('/cobros/{id}/nota-cobro', [CobroController::class, 'notaCobro']);
 });
 
 // 006 · Consultar obra y 009 · Consultar tablero: contrato con su saldo, cobros y su resumen, solo para admin y gerente.
