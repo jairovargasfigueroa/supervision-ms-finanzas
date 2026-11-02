@@ -1,6 +1,6 @@
 # Servicio Finanzas
 
-Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la capa 2 también lleva proveedores, órdenes de compra y cuentas por pagar. Participa en la saga «aprobar planilla» reservando el saldo y emitiendo el cobro.
+Microservicio dueño de los contratos, las reservas de saldo y los cobros. En la capa 2 (201) registra el pago de los cobros y atiende a los flujos de cobranza de n8n (recordatorios, nota de cobro en PDF, envíos). Participa en la saga «aprobar planilla» reservando el saldo y emitiendo el cobro.
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
@@ -36,7 +36,7 @@ Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php 
 
 ## Arquitectura: DDD + Hexagonal
 
-Estructura prevista por contexto (`Contratos`, `Cobros`, `Compras`), dentro de `app/`:
+Estructura por contexto (`Contratos`, `Cobros`), dentro de `app/`:
 
 ```
 app/<Contexto>/
@@ -49,13 +49,13 @@ app/<Contexto>/
 ```
 
 - El dominio no depende de Laravel. Eloquent solo vive en `Infraestructura/Persistencia`.
-- Agregados: `Contrato` (con sus reservas y cobros) y, en la capa 2, `OrdenCompra`.
+- Agregados: `Contrato` (con sus reservas) y `Cobro` (con su pago y sus envíos, 201).
 
 ## Reglas del proyecto
 
 - Lo que este servicio guarda está en `docs/datos.md`; lo que expone y escucha, en `docs/contratos.md`.
 - Saldo disponible = monto − cobros emitidos − reservas vigentes. Una reserva que no alcanza hace fallar la saga.
-- Un cobro por planilla (`planilla_id` único). Una orden de compra por evento de stock bajo (`evento_origen_id` único).
+- Un cobro por planilla (`planilla_id` único). Un envío de cada tipo por cobro (`envio_cobro`, único `cobro_id` + `tipo`, 201). Un cobro `PAGADO` no cambia más.
 - Los eventos se escriben en `outbox_evento` en la misma transacción; los mensajes recibidos se registran en `mensaje_procesado`.
 
 ## Documentación
