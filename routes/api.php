@@ -21,5 +21,8 @@ Route::middleware('rol:admin,gerente')->group(function () {
     Route::get('/cobros/{id}', [CobroController::class, 'mostrar'])->whereUuid('id');
 });
 
+// 201 · Cobranza automática: registrar el pago completo de un cobro, solo admin (lo llama el gateway).
+Route::post('/cobros/{id}/pago', [CobroController::class, 'registrarPago'])->middleware('rol:admin');
+
 // Ruta de reserva: cualquier otra ruta, con cualquier método, pasa primero por el token y luego responde 404.
 Route::any('{ruta}', fn () => abort(404))->where('ruta', '.*')->fallback();

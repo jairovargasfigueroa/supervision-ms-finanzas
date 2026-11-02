@@ -99,6 +99,8 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
             venceEn: $fila->vence_en->toDateTimeImmutable(),
             estado: EstadoCobro::from($fila->estado),
+            pagadoEn: $fila->pagado_en?->toDateTimeImmutable(),
+            comprobante: $fila->comprobante,
         );
     }
 
@@ -198,7 +200,31 @@ final class CobroRepositorioEloquent implements CobroRepositorio
     {
         $fila = CobroModelo::query()->where('planilla_id', $planillaId)->first();
 
-        return $fila === null ? null : Cobro::reconstruir(
+        return $fila === null ? null : self::cobro($fila);
+    }
+
+    public function bloquear(string $id): ?Cobro
+    {
+        $fila = CobroModelo::query()->whereKey($id)->lockForUpdate()->first();
+
+        return $fila === null ? null : self::cobro($fila);
+    }
+
+    public function guardarPago(Cobro $cobro): void
+    {
+        // Con el builder (sin los casts del modelo) para guardar el instante con su zona (`timestamptz`).
+        CobroModelo::query()->whereKey($cobro->id)->update([
+            'estado' => $cobro->estado->value,
+            'pagado_en' => $cobro->pagadoEn?->format('Y-m-d'),
+            'comprobante' => $cobro->comprobante,
+            'pago_registrado_por' => $cobro->pagoRegistradoPor,
+            'pago_registrado_en' => $cobro->pagoRegistradoEn?->format('Y-m-d H:i:sP'),
+        ]);
+    }
+
+    private static function cobro(CobroModelo $fila): Cobro
+    {
+        return Cobro::reconstruir(
             id: $fila->id,
             contratoId: $fila->contrato_id,
             planillaId: $fila->planilla_id,
@@ -207,6 +233,10 @@ final class CobroRepositorioEloquent implements CobroRepositorio
             emitidoEn: $fila->emitido_en->toDateTimeImmutable(),
             venceEn: $fila->vence_en->toDateTimeImmutable(),
             estado: EstadoCobro::from($fila->estado),
+            pagadoEn: $fila->pagado_en?->toDateTimeImmutable(),
+            comprobante: $fila->comprobante,
+            pagoRegistradoPor: $fila->pago_registrado_por,
+            pagoRegistradoEn: $fila->pago_registrado_en?->toDateTimeImmutable(),
         );
     }
 

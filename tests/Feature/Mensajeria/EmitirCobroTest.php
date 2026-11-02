@@ -203,4 +203,14 @@ final readonly class CobroRepositorioQueFalla implements CobroRepositorio
     {
         return $this->real->marcarVencidos($hoy);
     }
+
+    public function bloquear(string $id): ?Cobro
+    {
+        return $this->real->bloquear($id);
+    }
+
+    public function guardarPago(Cobro $cobro): void
+    {
+        $this->real->guardarPago($cobro);
+    }
 }

@@ -7,7 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Un elemento de `GET /cobros` (docs/contratos.md), en `camelCase`.
+ * Un elemento de `GET /cobros` (docs/contratos.md), en `camelCase`. También es la respuesta de `GET /cobros/{id}` y de
+ * `POST /cobros/{id}/pago` (201).
  *
  * @property CobroConsultado $resource
  */
@@ -29,6 +30,8 @@ class CobroResource extends JsonResource
             'emitidoEn' => $cobro->emitidoEn->format('Y-m-d'),
             'venceEn' => $cobro->venceEn->format('Y-m-d'),
             'estado' => $cobro->estado->value,
+            'pagadoEn' => $cobro->pagadoEn?->format('Y-m-d'),
+            'comprobante' => $cobro->comprobante,
         ];
     }
 }

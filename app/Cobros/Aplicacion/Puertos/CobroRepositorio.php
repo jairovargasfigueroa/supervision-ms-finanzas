@@ -57,6 +57,15 @@ interface CobroRepositorio
     public function buscar(string $id): ?CobroConsultado;
 
     /**
+     * El cobro con ese id, con su fila bloqueada hasta el fin de la transacción (`FOR UPDATE`), o `null` si no existe
+     * (201: registrar el pago).
+     */
+    public function bloquear(string $id): ?Cobro;
+
+    /** Guarda el pago registrado del cobro: estado, fecha, comprobante y quién y cuándo lo registró (201). */
+    public function guardarPago(Cobro $cobro): void;
+
+    /**
      * Pasa a `VENCIDO` los cobros `PENDIENTE` con `vence_en` anterior a `$hoy` (fecha en La Paz, 008).
      *
      * @return int cuántos cambió

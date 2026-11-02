@@ -71,6 +71,8 @@ class ListarCobrosTest extends TestCase
                         'emitidoEn' => '2026-11-02',
                         'venceEn' => '2026-12-02',
                         'estado' => 'VENCIDO',
+                        'pagadoEn' => null,
+                        'comprobante' => null,
                     ],
                     [
                         'id' => $tarde['id'],
@@ -81,6 +83,8 @@ class ListarCobrosTest extends TestCase
                         'emitidoEn' => '2026-11-02',
                         'venceEn' => '2027-01-15',
                         'estado' => 'PENDIENTE',
+                        'pagadoEn' => null,
+                        'comprobante' => null,
                     ],
                 ],
                 'total' => 2,
@@ -129,7 +133,7 @@ class ListarCobrosTest extends TestCase
     {
         $casos = [
             '?obraId=abc' => 'obraId',
-            '?estado=PAGADO' => 'estado',
+            '?estado=ANULADO' => 'estado',
             '?pagina=0' => 'pagina',
             '?tamano=x' => 'tamano',
             '?orden=montoNeto' => 'orden',

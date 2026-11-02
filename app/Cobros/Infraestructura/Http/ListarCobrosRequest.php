@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Consulta de `GET /cobros`: filtros `obraId` (uuid) y `estado` (`PENDIENTE` o `VENCIDO`), ambos opcionales, y
+ * Consulta de `GET /cobros`: filtros `obraId` (uuid) y `estado` (`PENDIENTE`, `VENCIDO` o `PAGADO`, 201), ambos opcionales, y
  * paginación (docs/convenciones.md). Si algo está mal formado, `400 DATOS_INVALIDOS` con `errores[]`; el `tamano` mayor
  * a 100 lo rechaza `CriteriosPagina` con `400 PAGINACION_INVALIDA`.
  */
@@ -43,7 +43,7 @@ class ListarCobrosRequest extends FormRequest
     {
         return [
             'obraId.uuid' => 'Debe ser un UUID.',
-            'estado.enum' => 'Debe ser PENDIENTE o VENCIDO.',
+            'estado.enum' => 'Debe ser PENDIENTE, VENCIDO o PAGADO.',
             'pagina.integer' => 'Debe ser un número entero.',
             'pagina.min' => 'Debe ser 1 o más.',
             'tamano.integer' => 'Debe ser un número entero.',
