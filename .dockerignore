@@ -1,0 +1,42 @@
+# 601: lo que nunca entra al contexto de la imagen
+.git
+.github
+node_modules
+vendor
+target
+dist
+.env*
+*.log
+coverage
+.venv
+android
+datos
+.idea
+.vscode
+.phpunit.cache
+.phpunit.result.cache
+docs
+tests
+phpunit.xml
+phpstan.neon
+# Cachés y archivos de la máquina de desarrollo (las carpetas quedan; su contenido no)
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/testing/*
+storage/framework/views/*
+storage/pail
+bootstrap/cache/*.php
+database/database.sqlite
+public/hot
+public/storage
+# Archivos del repositorio que la imagen no usa
+Dockerfile
+.dockerignore
+*.md
+.editorconfig
+.gitattributes
+.gitignore
+.npmrc
+package.json
+vite.config.js
