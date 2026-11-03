@@ -103,6 +103,8 @@ tests/
   Feature/Mensajeria/PublicadorOutboxTest.php, ConsumidorTest.php (outbox, reintentos con x-intentos, fallidos e inbox)
   Feature/Mensajeria/ObraRegistradaTest.php (002: válido, inválido, repetido, misma obra, datos incompletos)
   Feature/Compartido/SaludTest.php, AutenticacionTest.php (token: 401/503/404, con TokensPrueba)
+  Feature/Compartido/ModoProduccionTest.php (601: sin APP_DEBUG no hay traza ni mensaje interno; RABBITMQ_SSL llega a la conexión)
+  Unit/Compartido/Mensajeria/ConexionRabbitTest.php (601: datos de la conexión sin y con TLS, sin conectarse)
   Feature/Compartido/RolTest.php  (rol:...: 401/403/200 por rol y azp, con rutas registradas solo en la prueba)
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
