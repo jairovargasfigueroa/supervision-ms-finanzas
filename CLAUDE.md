@@ -8,7 +8,7 @@ Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md`
 
 ## Stack
 
-- PHP 8.3 · Laravel 13 (Composer)
+- PHP 8.3+ · Laravel 13 (Composer). El `composer.lock` trae Symfony 8.1, que pide PHP 8.4.1 o más: la imagen y el CI usan PHP 8.4 (601)
 - PostgreSQL (en `.env`: `DB_CONNECTION=pgsql`) · migraciones de Laravel
 - RabbitMQ con `php-amqplib/php-amqplib` 3 · validación de tokens de Keycloak con `firebase/php-jwt` 7 (JWKS del realm)
 - Nota de cobro en PDF con `barryvdh/laravel-dompdf` 3.1.2 (201); `EMPRESA_NOMBRE` en `.env`
@@ -31,7 +31,20 @@ php artisan db:seed --class=DatosPruebaSeeder --force   # datos de prueba (011),
 php artisan datos-prueba:vaciar                          # vacía todas las tablas salvo migrations (011)
 ```
 
-Datos de prueba (011): los llama `infra/semilla` con `SEMILLA_FECHA` (la misma D para los tres servicios). Los datos están en `database/seeders/datos/finanzas.json`, copia de la sección 8 de `docs/datos-prueba.md` (si cambian, se cambian allí primero). Solo en desarrollo: se niegan con `APP_ENV=production` o con una base que no es local, y no escriben en el outbox. Las pruebas usan la base de pruebas (SQLite en memoria de `phpunit.xml`); nunca se corren contra `finanzas_db` desde una prueba.
+Imagen y CI (601, `docs/specs/601-contenedores-ci/` de `supervision-docs`):
+
+```sh
+docker build -t supervision-ms-finanzas .   # dos etapas: composer install --no-dev y FrankenPHP (PHP 8.4) con pdo_pgsql, bcmath, sockets y opcache; usuario 10001
+docker run --rm -p 8083:8083 -e APP_KEY=base64:… -e DB_HOST=… -e DB_PASSWORD=… supervision-ms-finanzas            # API: migrate --force y frankenphp php-server sobre public/
+docker run --rm -e APP_KEY=base64:… -e DB_HOST=… -e RABBITMQ_HOST=… supervision-ms-finanzas php artisan mensajeria:consumir   # la misma imagen, otro comando
+```
+
+- La imagen trae `APP_ENV=production`, `APP_DEBUG=false` y `LOG_CHANNEL=stderr`; no lleva `.env`: toda la configuración entra por variables (las de `.env.example`, con `APP_KEY`). La API escucha en `PORT` (8083) y su `HEALTHCHECK` llama `GET /salud`; los procesos en segundo plano (`mensajeria:consumir`, `mensajeria:publicar`, `schedule:work`) corren con la misma imagen cambiando el comando (en el *compose*, sin *healthcheck*: no atienden HTTP).
+- TLS: `DB_SSLMODE` (`prefer` por defecto; `require` o `verify-full` en la nube) y `RABBITMQ_SSL=true` (con `RABBITMQ_PORT=5671`; valida el certificado y el nombre). Una CA adicional (la local del ensayo) se pasa sin tocar la imagen con un `.ini` montado en `/usr/local/etc/php/conf.d/` con `curl.cainfo` y `openssl.cafile`.
+- La semilla desde la imagen: `php artisan db:seed --class=DatosPruebaSeeder --force` con `SEMILLA_DEMO=si` (en producción solo carga; `datos-prueba:vaciar` se niega siempre fuera de desarrollo).
+- `.github/workflows/ci.yml`: en cada PR hacia `develop` o `main`, `composer install`, `pint --test`, `phpstan analyse`, `php artisan test` y la imagen sin publicar; en cada *push* a `main`, la imagen en GHCR (`ghcr.io/jairovargasfigueroa/supervision-ms-finanzas`, etiquetas `sha-<7>` y `main`).
+
+Datos de prueba (011): los llama `infra/semilla` con `SEMILLA_FECHA` (la misma D para los tres servicios). Los datos están en `database/seeders/datos/finanzas.json`, copia de la sección 8 de `docs/datos-prueba.md` (si cambian, se cambian allí primero). Solo en desarrollo: se niegan con `APP_ENV=production` o con una base que no es local (salvo la carga con `SEMILLA_DEMO=si`, 601; el vaciado nunca), y no escriben en el outbox. Las pruebas usan la base de pruebas (SQLite en memoria de `phpunit.xml`); nunca se corren contra `finanzas_db` desde una prueba.
 
 Configuración local: copiar `.env.example` a `.env`, completar y ejecutar `php artisan key:generate`. **`.env` nunca se sube.**
 

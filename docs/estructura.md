@@ -20,13 +20,14 @@ app/
       Auth/           ValidadorTokenKeycloak.php, MiddlewareToken.php, MiddlewareRol.php (alias `rol`), UsuarioActual.php,
                       RolesEfectivos.php (función pura: roles que cuentan según azp)
       Mensajeria/     CanalMensajes.php (puerto del broker: publicar, consumir, cerrar), ConexionRabbit.php (lo implementa con
-                      php-amqplib), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
+                      php-amqplib; 601: TLS con RABBITMQ_SSL, validando certificado y nombre), Sobre.php, PublicadorOutbox.php, ConsumidorBase.php, OutboxEvento.php (modelo),
                       MensajeProcesado.php (modelo), MensajeInvalidoException.php (va directo a fallidos),
                       LectorDatos.php (008: uuid y monto positivo de `datos`; si no, MensajeInvalidoException)
       Semilla/        datos de prueba (011): FechaRelativa.php (fecha de carga D de SEMILLA_FECHA o hoy en La Paz; resolver
                       `D-120`, `D+18`, `M-3`, `M-1/09 10:00`, `D-2 11:00`; lo mal formado es error),
                       GuardaDatosPrueba.php (se niega con APP_ENV=production o base que no sea localhost, 127.0.0.1,
-                      ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST),
+                      ::1 o el contenedor `postgres` de infra; DB_URL manda sobre DB_HOST; 601: la carga pasa igual con
+                      SEMILLA_DEMO=si, el vaciado nunca),
                       VaciadorTablas.php (todas las tablas del esquema salvo `migrations`, en una transacción: TRUNCATE …
                       RESTART IDENTITY CASCADE en PostgreSQL)
   Contratos/                    # un contexto por carpeta: Contratos, Cobros
@@ -81,8 +82,8 @@ app/
   Console/Commands/   MensajeriaPublicar.php, MensajeriaConsumir.php, MarcarCobrosVencidos.php (008: `cobros:marcar-vencidos`),
                       VaciarDatosPrueba.php (011: `datos-prueba:vaciar`, con GuardaDatosPrueba)
   Providers/          FinanzasServiceProvider.php (enlaza puertos con implementaciones y crea ValidadorTokenKeycloak)
-config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA)
-config/semilla.php    semilla.fecha (SEMILLA_FECHA, fecha de carga D de los datos de prueba, 011)
+config/services.php   keycloak.emisor (KEYCLOAK_ISSUER) y keycloak.audiencia (KEYCLOAK_AUDIENCIA); rabbitmq.* (RABBITMQ_*; 601: ssl)
+config/semilla.php    semilla.fecha (SEMILLA_FECHA, fecha de carga D de los datos de prueba, 011); semilla.demo (SEMILLA_DEMO=si, 601)
 config/cobranza.php   cobranza.empresa_nombre (EMPRESA_NOMBRE, «Constructora Andina», 201)
 resources/views/pdf/nota-cobro.blade.php   201: nota de cobro maquetada con tablas (dompdf no admite flexbox ni grid)
 database/migrations/  una migración por tabla y funcionalidad (008: quita `contrato.saldo_disponible`, índice parcial de la
@@ -106,7 +107,7 @@ tests/
   Unit/Compartido/RolesEfectivosTest.php (roles que cuentan según azp y UsuarioActual)
   Unit/Compartido/CriteriosPaginaTest.php
   Unit/Compartido/Semilla/FechaRelativaTest.php (011: tabla del diseño, días 2–27, mal formadas, D de SEMILLA_FECHA)
-  Unit/Compartido/Semilla/GuardaDatosPruebaTest.php (011: producción, hosts locales y remotos, DB_URL)
+  Unit/Compartido/Semilla/GuardaDatosPruebaTest.php (011: producción, hosts locales y remotos, DB_URL; 601: SEMILLA_DEMO solo para cargar)
   Unit/Contratos/Dominio/ContratoTest.php, SaldoContratoTest.php (alcanza con saldo justo, 008), ReservaSaldoTest.php (008)
   Unit/Cobros/Dominio/CorteResumenTest.php (009: fecha de hoy en La Paz y hoy + 30)
   Unit/Cobros/Dominio/CobroTest.php (008: número, 30 días calendario, año de emisión en La Paz)
@@ -134,6 +135,20 @@ tests/
   Feature/Cobros/NotaCobroTest.php (201: PDF con número, neto y leyenda, cada 422, 400, 404, roles)
   Feature/Cobros/CobranzaAutomaticaTest.php (201, prueba de la spec: de la emisión al pago con n8n simulado)
   Unit/Cobros/FormatoBoliviaTest.php (201)
+```
+
+## Imagen y CI (601)
+
+```
+Dockerfile           dos etapas: construir (FrankenPHP con las extensiones y Composer: composer install --no-dev
+                     --optimize-autoloader) y final (dunglas/frankenphp con PHP 8.4, pdo_pgsql, bcmath, sockets y opcache,
+                     php.ini de producción, usuario 10001, APP_ENV=production, APP_DEBUG=false, LOG_CHANNEL=stderr,
+                     EXPOSE 8083, HEALTHCHECK a /salud). Comando por defecto: php artisan migrate --force y frankenphp
+                     php-server sobre public/ en PORT; la misma imagen corre mensajeria:consumir, mensajeria:publicar y
+                     schedule:work cambiando el comando
+.dockerignore        .git, vendor, node_modules, .env*, *.log, tests, cachés de bootstrap y storage, y lo demás de la regla común
+.github/workflows/ci.yml   job prueba (composer install, pint --test, phpstan analyse, php artisan test) y job imagen
+                     (build en PR; push a GHCR con sha-<7> y main en main)
 ```
 
 ## Reglas

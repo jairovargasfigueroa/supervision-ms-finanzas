@@ -1,11 +1,11 @@
-# 601 · Contenedores y CI/CD · tareas de `services/finanzas`
+# 601 · Preparar el despliegue · tareas de `services/finanzas`
 
-Requisitos y diseño: `docs/specs/601-contenedores-ci/` de la carpeta que agrupa los proyectos. Contratos: `docs/contratos.md` de este proyecto.
+Requisitos y diseño: `docs/specs/601-contenedores-ci/` de la carpeta que agrupa los proyectos. Al implementarla, estas tareas reemplazan a `services/finanzas/docs/specs/601-contenedores-ci/tareas.md` (eran del borrador anterior).
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] `.env.example` para PostgreSQL (`DB_CONNECTION=pgsql`, `DB_*`) y variables propuestas `DB_SSLMODE`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `AUDIENCIA`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_SSL`; `LOG_CHANNEL=stderr` en producción
-- [ ] `Dockerfile` (`composer:2` para dependencias, `dunglas/frankenphp:1-php8.3` con `pdo_pgsql`, `bcmath`, `sockets`, `opcache`; usuario sin privilegios) y `.dockerignore` (sin `vendor` ni `.env`)
-- [ ] Comandos de la misma imagen para la API (con `php artisan migrate --force` previo) y para el proceso en segundo plano (consumidores de la saga y de la 201, outbox y `schedule:work`)
-- [ ] `.github/workflows/ci-cd.yml`: `php artisan test` con PostgreSQL de servicio, imagen en GHCR, despliegue de `finanzas-api` y `finanzas-worker`
-- [ ] Comprobar: imagen sin `.env`, usuario sin privilegios, `/salud` responde
+- [x] Aplicar «Cambios a contratos y datos» que tocan este proyecto (`docs/`, `CLAUDE.md`, `.env.example`)
+- [ ] Revisar que no quede ninguna dirección fija; `DB_SSLMODE`, `RABBITMQ_SSL`, modo producción (`APP_ENV`, `APP_DEBUG=false`, `LOG_CHANNEL=stderr`)
+- [ ] `Dockerfile` (FrankenPHP, PHP 8.3+, extensiones; `migrate --force` y servidor) y `.dockerignore`; la misma imagen corre `mensajeria:consumir`, `mensajeria:publicar` y `schedule:work`; prueba con `/salud`
+- [ ] Semilla: excepción `SEMILLA_DEMO=si` (solo carga); pruebas
+- [ ] `.github/workflows/ci.yml`: job `prueba` (pint, phpstan y `php artisan test`) y job `imagen` (build en PR; *push* a GHCR con `sha-<7>` y `main` en `main`)
