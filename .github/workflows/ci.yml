@@ -1,0 +1,95 @@
+# 601 · CI de Finanzas (docs/specs/601-contenedores-ci/ de supervision-docs). En cada pull request hacia develop o
+# main: formato, análisis estático, pruebas y la imagen sin publicar. En cada push a main (un release): además publica
+# la imagen en GHCR con las etiquetas sha-<7 caracteres> y main. Solo usa el GITHUB_TOKEN.
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGEN: ghcr.io/jairovargasfigueroa/supervision-ms-finanzas
+
+jobs:
+  prueba:
+    name: Pruebas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # PHP 8.4: el composer.lock trae Symfony 8.1, que pide PHP 8.4.1 o más (igual que la imagen)
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pdo_sqlite, bcmath, sockets, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Carpeta de la caché de Composer
+        id: composer
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: composer install
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # Las pruebas usan SQLite en memoria (phpunit.xml); solo hace falta una APP_KEY de prueba
+      - name: Configuración de prueba
+        run: cp .env.example .env && php artisan key:generate --ansi
+
+      - name: Formato (pint)
+        run: vendor/bin/pint --test
+
+      - name: Análisis estático (phpstan)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Pruebas
+        run: php artisan test
+
+  imagen:
+    name: Imagen
+    needs: prueba
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Etiquetas
+        id: etiquetas
+        run: echo "lista=${IMAGEN}:sha-${GITHUB_SHA::7},${IMAGEN}:main" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Iniciar sesión en GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # En un PR solo construye (sin push); en main construye y publica
+      - name: Construir y publicar
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.etiquetas.outputs.lista }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
