@@ -125,8 +125,8 @@ tests/
                       fallos y datos inválidos)
   Feature/Semilla/DatosPruebaSeederTest.php (011, D = 2026-10-28 y 2027-01-20: dos cargas sin duplicar, saldos con
                       GET /contratos, números y estados, GET /cobros y /cobros/resumen, la serie sigue en 0004, sin
-                      outbox, no pisa, choque con otra clave, guarda)
-  Feature/Semilla/VaciarDatosPruebaTest.php (011: vacía el negocio, conserva migrations, recarga, guarda)
+                      outbox, no pisa, choque con otra clave, guarda; 601: con SEMILLA_DEMO carga en producción y con base remota)
+  Feature/Semilla/VaciarDatosPruebaTest.php (011: vacía el negocio, conserva migrations, recarga, guarda; 601: se niega aunque haya SEMILLA_DEMO)
   Feature/Mensajeria/SagaFinanzasTest.php (008, pruebas de la spec: saldo justo y sin saldo, repetidos, compensación,
                       cobro tardío, correlativo por año en La Paz)
   Feature/Cobros/RestriccionesCobranzaTest.php (201: columnas del pago, un envío de cada tipo por cobro)

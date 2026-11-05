@@ -34,7 +34,8 @@ class DatosPruebaSeeder extends Seeder
 
     public function run(): void
     {
-        GuardaDatosPrueba::comprobar();
+        // 601: con SEMILLA_DEMO=si la carga corre también en producción (solo la carga, nunca el vaciado)
+        GuardaDatosPrueba::comprobar(esCarga: true);
 
         $semillaFecha = config('semilla.fecha');
         $d = FechaRelativa::fechaDeCarga(

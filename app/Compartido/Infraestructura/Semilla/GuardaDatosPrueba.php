@@ -8,15 +8,26 @@ use RuntimeException;
  * Guarda de los datos de prueba (011, docs/datos-prueba.md sección 12): la semilla y el vaciado se niegan a correr con
  * `APP_ENV=production` o si la base no está en `localhost`, `127.0.0.1`, `::1` o en el contenedor `postgres` del
  * Docker Compose de infra. (`SEMILLA_PERMITIDA=si` la comprueba el script de infra.)
+ *
+ * 601 · Datos de demostración: con el permiso explícito `SEMILLA_DEMO=si` (`semilla.demo`) la **carga** (idempotente)
+ * corre igual en producción o con una base que no es local. El vaciado sigue prohibido fuera de desarrollo, sin excepción.
  */
 final class GuardaDatosPrueba
 {
     /** @var list<string> */
     public const HOSTS_LOCALES = ['localhost', '127.0.0.1', '::1', 'postgres'];
 
-    /** Comprueba la configuración de la aplicación; si no se puede, lanza la excepción con el motivo. */
-    public static function comprobar(): void
+    /**
+     * Comprueba la configuración de la aplicación; si no se puede, lanza la excepción con el motivo.
+     *
+     * @param  bool  $esCarga  la llama la carga (no el vaciado): con `SEMILLA_DEMO=si` se permite sin más comprobaciones
+     */
+    public static function comprobar(bool $esCarga = false): void
     {
+        if (self::permiteCargaDemo($esCarga, config('semilla.demo'))) {
+            return;
+        }
+
         $nombre = config('database.default');
         $conexion = config('database.connections.'.(is_string($nombre) ? $nombre : ''));
         $entorno = config('app.env');
@@ -28,6 +39,12 @@ final class GuardaDatosPrueba
         if ($motivo !== null) {
             throw new RuntimeException('Datos de prueba: no se ejecuta. '.$motivo);
         }
+    }
+
+    /** 601: la carga de demostración pasa solo si es una carga y `semilla.demo` es verdadero (`SEMILLA_DEMO=si`). */
+    public static function permiteCargaDemo(bool $esCarga, mixed $semillaDemo): bool
+    {
+        return $esCarga && $semillaDemo === true;
     }
 
     /**
