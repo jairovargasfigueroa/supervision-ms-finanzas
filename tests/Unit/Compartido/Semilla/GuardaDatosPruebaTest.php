@@ -47,6 +47,15 @@ class GuardaDatosPruebaTest extends TestCase
         $this->assertStringContainsString('production', $motivo);
     }
 
+    public function test_semilla_demo_permite_solo_la_carga(): void
+    {
+        $this->assertTrue(GuardaDatosPrueba::permiteCargaDemo(true, true));
+        $this->assertFalse(GuardaDatosPrueba::permiteCargaDemo(false, true), 'el vaciado nunca');
+        $this->assertFalse(GuardaDatosPrueba::permiteCargaDemo(true, false));
+        $this->assertFalse(GuardaDatosPrueba::permiteCargaDemo(true, 'si'), 'solo el booleano de config/semilla.php');
+        $this->assertFalse(GuardaDatosPrueba::permiteCargaDemo(true, null));
+    }
+
     /**
      * @return array<string, array{array<string, mixed>}>
      */

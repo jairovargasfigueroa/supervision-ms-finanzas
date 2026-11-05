@@ -78,6 +78,18 @@ class VaciarDatosPruebaTest extends TestCase
         $this->assertSame(3, DB::table('contrato')->count());
     }
 
+    // 601: SEMILLA_DEMO=si es solo para cargar; el vaciado sigue prohibido fuera de desarrollo
+    public function test_con_semilla_demo_se_niega_igual_en_produccion_y_no_borra_nada(): void
+    {
+        config(['app.env' => 'production', 'semilla.demo' => true]);
+
+        $this->artisan('datos-prueba:vaciar')
+            ->expectsOutputToContain('no se ejecuta')
+            ->assertFailed();
+
+        $this->assertSame(3, DB::table('contrato')->count());
+    }
+
     public function test_se_niega_con_una_base_que_no_es_local_y_no_borra_nada(): void
     {
         // Solo cambia la configuración que lee la guarda; la conexión abierta sigue siendo la de las pruebas.

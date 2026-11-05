@@ -3,7 +3,9 @@
 namespace App\Compartido\Infraestructura\Mensajeria;
 
 use PhpAmqpLib\Channel\AMQPChannel;
-use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Connection\AbstractConnection;
+use PhpAmqpLib\Connection\AMQPConnectionConfig;
+use PhpAmqpLib\Connection\AMQPConnectionFactory;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -14,13 +16,16 @@ use RuntimeException;
  * aquí no se redeclaran; solo se comprueba que la cola exista antes de consumirla.
  *
  * Conecta recién en la primera operación, así que crear la clase no necesita RabbitMQ.
+ *
+ * Con `tls` (601, `RABBITMQ_SSL=true`, puerto 5671) la conexión va cifrada y valida el certificado y el nombre del
+ * servidor contra las CA del sistema (o la de `openssl.cafile`, para la CA local del ensayo).
  */
 final class ConexionRabbit implements CanalMensajes
 {
     /** Segundos entre latidos; el tiempo de lectura es el doble, como pide php-amqplib. */
     private const LATIDO = 30;
 
-    private ?AMQPStreamConnection $conexion = null;
+    private ?AbstractConnection $conexion = null;
 
     /** Canal de publicación, en modo confirmación (publisher confirms). */
     private ?AMQPChannel $canalPublicacion = null;
@@ -31,6 +36,7 @@ final class ConexionRabbit implements CanalMensajes
         private readonly string $usuario,
         private readonly string $clave,
         private readonly string $vhost = '/',
+        private readonly bool $tls = false,
     ) {}
 
     public function publicar(string $exchange, string $claveRuteo, string $cuerpo, string $idMensaje, array $encabezados = []): void
@@ -83,23 +89,36 @@ final class ConexionRabbit implements CanalMensajes
         $this->canalPublicacion = null;
     }
 
-    private function conexion(): AMQPStreamConnection
+    private function conexion(): AbstractConnection
     {
         if ($this->conexion === null || ! $this->conexion->isConnected()) {
-            $this->conexion = new AMQPStreamConnection(
-                $this->host,
-                $this->puerto,
-                $this->usuario,
-                $this->clave,
-                $this->vhost,
-                connection_timeout: 5.0,
-                read_write_timeout: self::LATIDO * 2,
-                heartbeat: self::LATIDO,
-            );
+            $this->conexion = AMQPConnectionFactory::create($this->configuracion());
             $this->canalPublicacion = null;
         }
 
         return $this->conexion;
+    }
+
+    /** Datos de la conexión (stream de php-amqplib); con TLS, valida el certificado y el nombre del servidor. */
+    public function configuracion(): AMQPConnectionConfig
+    {
+        $config = new AMQPConnectionConfig;
+        $config->setHost($this->host);
+        $config->setPort($this->puerto);
+        $config->setUser($this->usuario);
+        $config->setPassword($this->clave);
+        $config->setVhost($this->vhost);
+        $config->setConnectionTimeout(5.0);
+        $config->setReadTimeout(self::LATIDO * 2);
+        $config->setWriteTimeout(self::LATIDO * 2);
+        $config->setHeartbeat(self::LATIDO);
+        if ($this->tls) {
+            $config->setIsSecure(true);
+            $config->setSslVerify(true);
+            $config->setSslVerifyName(true);
+        }
+
+        return $config;
     }
 
     private function canalPublicacion(): AMQPChannel

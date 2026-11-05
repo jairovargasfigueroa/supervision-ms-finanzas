@@ -39,6 +39,8 @@ return [
         'puerto' => (int) env('RABBITMQ_PORT', 5672),
         'usuario' => env('RABBITMQ_USER', 'finanzas'),
         'clave' => env('RABBITMQ_PASSWORD', ''),
+        // 601: TLS (puerto 5671) en la nube y en la producción local
+        'ssl' => filter_var(env('RABBITMQ_SSL', false), FILTER_VALIDATE_BOOLEAN),
         'exchange' => 'plataforma',
         'cola' => 'finanzas',
         'cola_fallidos' => 'plataforma.fallidos',

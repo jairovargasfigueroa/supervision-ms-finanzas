@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * `php artisan datos-prueba:vaciar` (011): vacía todas las tablas de la base salvo `migrations`, para volver a cargar los
  * datos de prueba (`recargar` de infra, que pide la confirmación). Con la misma guarda que la semilla: nunca en
- * producción ni con una base que no es local.
+ * producción ni con una base que no es local, tampoco con `SEMILLA_DEMO=si` (601: esa excepción es solo para cargar).
  */
 class VaciarDatosPrueba extends Command
 {

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Semilla;
 
 use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Compartido\Infraestructura\Semilla\GuardaDatosPrueba;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatosPruebaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -298,6 +299,41 @@ class DatosPruebaSeederTest extends TestCase
         }
 
         $this->assertSame(0, DB::table('contrato')->count());
+    }
+
+    // 601 · Datos de demostración: con SEMILLA_DEMO=si la carga corre en producción, sin duplicar
+    public function test_con_semilla_demo_carga_en_produccion_sin_duplicar(): void
+    {
+        config(['app.env' => 'production', 'semilla.demo' => true, 'semilla.fecha' => '2026-10-28']);
+
+        // Como la corre infra: con --force (en producción db:seed pide confirmación sin él)
+        $this->artisan('db:seed', ['--class' => DatosPruebaSeeder::class, '--force' => true])->assertSuccessful();
+        $this->artisan('db:seed', ['--class' => DatosPruebaSeeder::class, '--force' => true])->assertSuccessful();
+
+        $this->assertSame(3, DB::table('contrato')->count());
+        $this->assertSame(3, DB::table('cobro')->count());
+        $this->assertSame(0, DB::table('outbox_evento')->count());
+    }
+
+    public function test_con_semilla_demo_carga_con_una_base_que_no_es_local(): void
+    {
+        $original = config('database.default');
+        config([
+            'semilla.demo' => true,
+            'database.connections.remota' => ['driver' => 'pgsql', 'host' => 'finanzas.postgres.database.azure.com'],
+        ]);
+
+        // La guarda lee la conexión por defecto: con SEMILLA_DEMO=si deja cargar; el vaciado se niega igual
+        config(['database.default' => 'remota']);
+        try {
+            GuardaDatosPrueba::comprobar(esCarga: true);
+            $this->addToAssertionCount(1);
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('no es local');
+            GuardaDatosPrueba::comprobar();
+        } finally {
+            config(['database.default' => $original]);
+        }
     }
 
     public function test_se_niega_con_una_base_que_no_es_local(): void

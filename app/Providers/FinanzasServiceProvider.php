@@ -52,6 +52,7 @@ class FinanzasServiceProvider extends ServiceProvider
             puerto: (int) config('services.rabbitmq.puerto'),
             usuario: (string) config('services.rabbitmq.usuario'),
             clave: (string) config('services.rabbitmq.clave'),
+            tls: (bool) config('services.rabbitmq.ssl'),
         ));
     }
 }
