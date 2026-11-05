@@ -36,10 +36,11 @@ RUN addgroup -S -g 10001 finanzas \
     && apk add --no-cache --virtual .herramientas-cap libcap-utils \
     && setcap -r /usr/local/bin/frankenphp \
     && apk del .herramientas-cap
-# Modo producción (los tres se pueden cambiar al arrancar), la base del servicio y el puerto de convenciones.md
+# Modo producción y registros en JSON (se pueden cambiar al arrancar), la base del servicio y el puerto de convenciones.md
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
+    LOG_STDERR_FORMATTER="Monolog\\Formatter\\JsonFormatter" \
     APP_TIMEZONE=America/La_Paz \
     DB_CONNECTION=pgsql \
     PORT=8083
