@@ -1,5 +1,6 @@
 <?php
 
+use App\Compartido\Infraestructura\Auth\MiddlewareRol;
 use App\Compartido\Infraestructura\Auth\MiddlewareToken;
 use App\Compartido\Infraestructura\Http\ManejadorProblemDetails;
 use App\Compartido\Infraestructura\Http\MiddlewareEncabezadosSeguridad;
@@ -18,7 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(MiddlewareRequestId::class);
         $middleware->append(MiddlewareEncabezadosSeguridad::class);
-        $middleware->alias(['token' => MiddlewareToken::class]);
+        // `rol:admin,gerente` va en cada ruta y corre después del token del grupo api (001).
+        $middleware->alias(['token' => MiddlewareToken::class, 'rol' => MiddlewareRol::class]);
         // Toda ruta de la API exige token por defecto; solo /salud lo quita explícitamente (routes/api.php).
         $middleware->api(append: [MiddlewareToken::class]);
     })

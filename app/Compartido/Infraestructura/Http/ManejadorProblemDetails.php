@@ -2,9 +2,11 @@
 
 namespace App\Compartido\Infraestructura\Http;
 
+use App\Compartido\Dominio\ReglaNegocioException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
@@ -32,6 +34,26 @@ final class ManejadorProblemDetails
 
         $exceptions->render(fn (AuthenticationException $e) => self::respuesta(401, $e->getMessage()));
 
+        // Regla del negocio: su propio código y estado (por ejemplo `400 PAGINACION_INVALIDA`).
+        $exceptions->render(fn (ReglaNegocioException $e) => self::respuesta(
+            $e->status,
+            $e->getMessage(),
+            codigo: $e->codigo,
+            titulo: isset(self::GENERICOS[$e->status]) ? null : $e->getMessage(),
+        ));
+
+        // Form Request inválido: `400 DATOS_INVALIDOS` con `errores[]` (`campo` y `mensaje`), no el 422 de Laravel.
+        $exceptions->render(function (ValidationException $e) {
+            $errores = [];
+            foreach ($e->errors() as $campo => $mensajes) {
+                foreach ($mensajes as $mensaje) {
+                    $errores[] = ['campo' => $campo, 'mensaje' => $mensaje];
+                }
+            }
+
+            return self::respuesta(400, 'Algunos datos no son válidos.', errores: $errores);
+        });
+
         $exceptions->render(function (HttpExceptionInterface $e) {
             $status = $e->getStatusCode();
             if (! isset(self::GENERICOS[$status])) {
@@ -46,8 +68,9 @@ final class ManejadorProblemDetails
 
     /**
      * @param  array<string, string>  $encabezados
+     * @param  list<array{campo: string, mensaje: string}>|null  $errores
      */
-    public static function respuesta(int $status, string $detalle = '', array $encabezados = [], ?string $codigo = null, ?string $titulo = null): JsonResponse
+    public static function respuesta(int $status, string $detalle = '', array $encabezados = [], ?string $codigo = null, ?string $titulo = null, ?array $errores = null): JsonResponse
     {
         [$codigoGenerico, $tituloGenerico] = self::GENERICOS[$status] ?? self::GENERICOS[500];
         $titulo ??= $tituloGenerico;
@@ -59,7 +82,7 @@ final class ManejadorProblemDetails
                 'status' => $status,
                 'detail' => $detalle !== '' ? $detalle : $titulo,
                 'codigo' => $codigo ?? $codigoGenerico,
-            ],
+            ] + ($errores === null ? [] : ['errores' => $errores]),
             $status,
             ['Content-Type' => 'application/problem+json'] + $encabezados,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,

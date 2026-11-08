@@ -4,4 +4,5 @@ Requisitos y diseño: `docs/specs/009-consultar-tablero/` de la carpeta que agru
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] `GET /cobros/resumen` y pruebas
+- [x] `GET /cobros/resumen` con el caso de uso `ResumirCobros` (fechas del corte en La Paz con `CorteResumen`, suma en el repositorio) y sus pruebas unitarias
+- [x] Pruebas de la spec: resúmenes con datos de prueba (Feature: cobros de `docs/datos-prueba.md`, pendiente ya vencido, bordes de hoy y hoy + 30, roles)

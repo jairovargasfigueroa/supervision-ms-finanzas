@@ -2,7 +2,21 @@
 
 namespace App\Providers;
 
+use App\Cobros\Aplicacion\Puertos\CobroRepositorio;
+use App\Cobros\Aplicacion\Puertos\EnvioCobroRepositorio;
+use App\Cobros\Aplicacion\Puertos\GeneradorPdfNotaCobro;
+use App\Cobros\Infraestructura\Pdf\GeneradorPdfDompdf;
+use App\Cobros\Infraestructura\Persistencia\CobroRepositorioEloquent;
+use App\Cobros\Infraestructura\Persistencia\EnvioCobroRepositorioEloquent;
 use App\Compartido\Infraestructura\Auth\ValidadorTokenKeycloak;
+use App\Compartido\Infraestructura\Mensajeria\CanalMensajes;
+use App\Compartido\Infraestructura\Mensajeria\ConexionRabbit;
+use App\Contratos\Aplicacion\Puertos\ContratoRepositorio;
+use App\Contratos\Aplicacion\Puertos\PublicadorEventos;
+use App\Contratos\Aplicacion\Puertos\ReservaSaldoRepositorio;
+use App\Contratos\Infraestructura\Mensajeria\PublicadorEventosOutbox;
+use App\Contratos\Infraestructura\Persistencia\ContratoRepositorioEloquent;
+use App\Contratos\Infraestructura\Persistencia\ReservaSaldoRepositorioEloquent;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -16,6 +30,29 @@ class FinanzasServiceProvider extends ServiceProvider
         $this->app->singleton(ValidadorTokenKeycloak::class, fn () => new ValidadorTokenKeycloak(
             emisor: (string) config('services.keycloak.emisor'),
             audiencia: (string) config('services.keycloak.audiencia'),
+        ));
+
+        // Puertos del contexto Contratos (002).
+        $this->app->bind(ContratoRepositorio::class, ContratoRepositorioEloquent::class);
+        $this->app->bind(PublicadorEventos::class, PublicadorEventosOutbox::class);
+        // Reservas de saldo de la saga (008).
+        $this->app->bind(ReservaSaldoRepositorio::class, ReservaSaldoRepositorioEloquent::class);
+
+        // Puertos del contexto Cobros (006).
+        $this->app->bind(CobroRepositorio::class, CobroRepositorioEloquent::class);
+        // Correos de la cobranza automática (201).
+        $this->app->bind(EnvioCobroRepositorio::class, EnvioCobroRepositorioEloquent::class);
+        $this->app->bind(GeneradorPdfNotaCobro::class, fn () => new GeneradorPdfDompdf(
+            empresaNombre: (string) config('cobranza.empresa_nombre'),
+        ));
+
+        // Conecta recién en la primera publicación o consumo (002).
+        $this->app->singleton(CanalMensajes::class, fn () => new ConexionRabbit(
+            host: (string) config('services.rabbitmq.host'),
+            puerto: (int) config('services.rabbitmq.puerto'),
+            usuario: (string) config('services.rabbitmq.usuario'),
+            clave: (string) config('services.rabbitmq.clave'),
+            tls: (bool) config('services.rabbitmq.ssl'),
         ));
     }
 }
