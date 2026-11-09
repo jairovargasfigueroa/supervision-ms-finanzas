@@ -61,6 +61,32 @@ class DatosPruebaSeederTest extends TestCase
         $this->assertSame($primera, $this->foto());
     }
 
+    public function test_603_con_historia_suma_las_obras_4_a_6_con_pagos_y_la_segunda_carga_no_duplica(): void
+    {
+        config(['semilla.historia' => true]);
+        $this->cargar('2026-11-09');
+        $this->cargar('2026-11-09');
+
+        $this->assertSame(6, DB::table('contrato')->count());
+        $this->assertSame(20, DB::table('reserva_saldo')->count());
+        $this->assertSame(20, DB::table('cobro')->count());
+        $this->assertSame(39, DB::table('envio_cobro')->count());
+        // Pagados con fecha, comprobante y quién lo registró (admin1); el vencido sin pagar de la obra 5
+        $pagados = DB::table('cobro')->where('estado', 'PAGADO')->get();
+        $this->assertCount(13, $pagados);
+        foreach ($pagados as $cobro) {
+            $this->assertNotNull($cobro->pagado_en);
+            $this->assertStringStartsWith('Transferencia BNB ', (string) $cobro->comprobante);
+            $this->assertSame(DatosPruebaSeeder::PAGOS_REGISTRADOS_POR, $cobro->pago_registrado_por);
+            $this->assertNotNull($cobro->pago_registrado_en);
+        }
+        $this->assertSame('VENCIDO', DB::table('cobro')->where('id', 'c2000000-0000-4000-8000-000000000504')->value('estado'));
+        $this->assertSame('PENDIENTE', DB::table('cobro')->where('id', 'c2000000-0000-4000-8000-000000000506')->value('estado'));
+        // Números correlativos por año en orden de emisión, sin repetir, sobre la 011 y la historia juntas
+        $numeros = DB::table('cobro')->pluck('numero')->sort()->values()->all();
+        $this->assertSame(array_map(fn (int $n): string => sprintf('COB-2026-%04d', $n), range(1, 20)), $numeros);
+    }
+
     public function test_la_carga_muestra_el_resumen_con_la_fecha_d(): void
     {
         config(['semilla.fecha' => '2026-10-28']);

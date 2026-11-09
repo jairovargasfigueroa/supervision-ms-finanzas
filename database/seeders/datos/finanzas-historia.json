@@ -1,0 +1,554 @@
+{
+  "fuente": "603 · Historia de demostración (Finanzas): obras 4, 5 y 6. Archivo GENERADO por infra/semilla/historia/generar.mjs; no se edita a mano. Se une a los datos de la 011 con SEMILLA_HISTORIA=si.",
+  "contratos": [
+    {
+      "id": "c0000000-0000-4000-8000-000000000004",
+      "obraId": "b0000000-0000-4000-8000-000000000004",
+      "monto": 4156830,
+      "plazoDias": 420,
+      "anticipoPct": 10,
+      "retencionPct": 7,
+      "firmadoEn": "D-195"
+    },
+    {
+      "id": "c0000000-0000-4000-8000-000000000005",
+      "obraId": "b0000000-0000-4000-8000-000000000005",
+      "monto": 3733300,
+      "plazoDias": 300,
+      "anticipoPct": 15,
+      "retencionPct": 7,
+      "firmadoEn": "D-225"
+    },
+    {
+      "id": "c0000000-0000-4000-8000-000000000006",
+      "obraId": "b0000000-0000-4000-8000-000000000006",
+      "monto": 3466200,
+      "plazoDias": 360,
+      "anticipoPct": 10,
+      "retencionPct": 5,
+      "firmadoEn": "D-168"
+    }
+  ],
+  "reservas": [
+    {
+      "id": "c1000000-0000-4000-8000-000000000401",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000401",
+      "monto": 157452.66,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000402",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000402",
+      "monto": 272037.48,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000403",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000403",
+      "monto": 241863.66,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000404",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000404",
+      "monto": 320936.1,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000405",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000405",
+      "monto": 327771.81,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000406",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000406",
+      "monto": 327173.05,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000501",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000501",
+      "monto": 26254.8,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000502",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000502",
+      "monto": 134421.3,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000503",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000503",
+      "monto": 191166.3,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000504",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000504",
+      "monto": 179431.2,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000505",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000505",
+      "monto": 138223.8,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000506",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000506",
+      "monto": 97003.92,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000601",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000601",
+      "monto": 111452,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000602",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000602",
+      "monto": 219317,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000603",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000603",
+      "monto": 118972.8,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000604",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000604",
+      "monto": 134160.6,
+      "estado": "CONSUMIDA"
+    },
+    {
+      "id": "c1000000-0000-4000-8000-000000000605",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000605",
+      "monto": 141754.5,
+      "estado": "CONSUMIDA"
+    }
+  ],
+  "cobros": [
+    {
+      "id": "c2000000-0000-4000-8000-000000000401",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000401",
+      "montoNeto": 157452.66,
+      "emitidoEn": "D-153",
+      "pagadoEn": "D-140",
+      "comprobante": "Transferencia BNB 88732075"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000402",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000402",
+      "montoNeto": 272037.48,
+      "emitidoEn": "D-125",
+      "pagadoEn": "D-110",
+      "comprobante": "Transferencia BNB 72935260"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000403",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000403",
+      "montoNeto": 241863.66,
+      "emitidoEn": "D-91",
+      "pagadoEn": "D-81",
+      "comprobante": "Transferencia BNB 42968303"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000404",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000404",
+      "montoNeto": 320936.1,
+      "emitidoEn": "D-58",
+      "pagadoEn": "D-40",
+      "comprobante": "Transferencia BNB 86806723"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000405",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000405",
+      "montoNeto": 327771.81,
+      "emitidoEn": "D-32",
+      "pagadoEn": "D-12",
+      "comprobante": "Transferencia BNB 66289269"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000406",
+      "contratoId": "c0000000-0000-4000-8000-000000000004",
+      "planillaId": "d0000000-0000-4000-8000-000000000406",
+      "montoNeto": 327173.05,
+      "emitidoEn": "D-3"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000501",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000501",
+      "montoNeto": 26254.8,
+      "emitidoEn": "D-181",
+      "pagadoEn": "D-167",
+      "comprobante": "Transferencia BNB 84017737"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000502",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000502",
+      "montoNeto": 134421.3,
+      "emitidoEn": "D-157",
+      "pagadoEn": "D-116",
+      "comprobante": "Transferencia BNB 69645487"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000503",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000503",
+      "montoNeto": 191166.3,
+      "emitidoEn": "D-122",
+      "pagadoEn": "D-100",
+      "comprobante": "Transferencia BNB 34142204"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000504",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000504",
+      "montoNeto": 179431.2,
+      "emitidoEn": "D-93"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000505",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000505",
+      "montoNeto": 138223.8,
+      "emitidoEn": "D-63",
+      "pagadoEn": "D-35",
+      "comprobante": "Transferencia BNB 40502375"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000506",
+      "contratoId": "c0000000-0000-4000-8000-000000000005",
+      "planillaId": "d0000000-0000-4000-8000-000000000506",
+      "montoNeto": 97003.92,
+      "emitidoEn": "D-28"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000601",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000601",
+      "montoNeto": 111452,
+      "emitidoEn": "D-124",
+      "pagadoEn": "D-115",
+      "comprobante": "Transferencia BNB 81131398"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000602",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000602",
+      "montoNeto": 219317,
+      "emitidoEn": "D-90",
+      "pagadoEn": "D-74",
+      "comprobante": "Transferencia BNB 40687116"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000603",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000603",
+      "montoNeto": 118972.8,
+      "emitidoEn": "D-61",
+      "pagadoEn": "D-49",
+      "comprobante": "Transferencia BNB 18982150"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000604",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000604",
+      "montoNeto": 134160.6,
+      "emitidoEn": "D-34",
+      "pagadoEn": "D-7",
+      "comprobante": "Transferencia BNB 80693708"
+    },
+    {
+      "id": "c2000000-0000-4000-8000-000000000605",
+      "contratoId": "c0000000-0000-4000-8000-000000000006",
+      "planillaId": "d0000000-0000-4000-8000-000000000605",
+      "montoNeto": 141754.5,
+      "emitidoEn": "D-3"
+    }
+  ],
+  "envios": [
+    {
+      "id": "c3000000-0000-4000-8000-000000000401",
+      "cobroId": "c2000000-0000-4000-8000-000000000401",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-153 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001401",
+      "cobroId": "c2000000-0000-4000-8000-000000000401",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-140 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000402",
+      "cobroId": "c2000000-0000-4000-8000-000000000402",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-125 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001402",
+      "cobroId": "c2000000-0000-4000-8000-000000000402",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-110 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000403",
+      "cobroId": "c2000000-0000-4000-8000-000000000403",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-91 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001403",
+      "cobroId": "c2000000-0000-4000-8000-000000000403",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-81 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000404",
+      "cobroId": "c2000000-0000-4000-8000-000000000404",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-58 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001404",
+      "cobroId": "c2000000-0000-4000-8000-000000000404",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-40 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000405",
+      "cobroId": "c2000000-0000-4000-8000-000000000405",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-32 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001405",
+      "cobroId": "c2000000-0000-4000-8000-000000000405",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-12 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000406",
+      "cobroId": "c2000000-0000-4000-8000-000000000406",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-3 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000501",
+      "cobroId": "c2000000-0000-4000-8000-000000000501",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-181 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001501",
+      "cobroId": "c2000000-0000-4000-8000-000000000501",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-167 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000502",
+      "cobroId": "c2000000-0000-4000-8000-000000000502",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-157 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000003502",
+      "cobroId": "c2000000-0000-4000-8000-000000000502",
+      "tipo": "RECORDATORIO_POR_VENCER",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-130 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000002502",
+      "cobroId": "c2000000-0000-4000-8000-000000000502",
+      "tipo": "RECORDATORIO_VENCIDO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-126 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001502",
+      "cobroId": "c2000000-0000-4000-8000-000000000502",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-116 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000503",
+      "cobroId": "c2000000-0000-4000-8000-000000000503",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-122 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001503",
+      "cobroId": "c2000000-0000-4000-8000-000000000503",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-100 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000504",
+      "cobroId": "c2000000-0000-4000-8000-000000000504",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-93 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000003504",
+      "cobroId": "c2000000-0000-4000-8000-000000000504",
+      "tipo": "RECORDATORIO_POR_VENCER",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-66 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000002504",
+      "cobroId": "c2000000-0000-4000-8000-000000000504",
+      "tipo": "RECORDATORIO_VENCIDO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-62 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000505",
+      "cobroId": "c2000000-0000-4000-8000-000000000505",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-63 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000003505",
+      "cobroId": "c2000000-0000-4000-8000-000000000505",
+      "tipo": "RECORDATORIO_POR_VENCER",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-36 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001505",
+      "cobroId": "c2000000-0000-4000-8000-000000000505",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-35 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000506",
+      "cobroId": "c2000000-0000-4000-8000-000000000506",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-28 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000003506",
+      "cobroId": "c2000000-0000-4000-8000-000000000506",
+      "tipo": "RECORDATORIO_POR_VENCER",
+      "destinatario": "demo1@constructora-andina.test",
+      "enviadoEn": "D-1 08:02"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000601",
+      "cobroId": "c2000000-0000-4000-8000-000000000601",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-124 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001601",
+      "cobroId": "c2000000-0000-4000-8000-000000000601",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-115 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000602",
+      "cobroId": "c2000000-0000-4000-8000-000000000602",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-90 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001602",
+      "cobroId": "c2000000-0000-4000-8000-000000000602",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-74 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000603",
+      "cobroId": "c2000000-0000-4000-8000-000000000603",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-61 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001603",
+      "cobroId": "c2000000-0000-4000-8000-000000000603",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-49 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000604",
+      "cobroId": "c2000000-0000-4000-8000-000000000604",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-34 10:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000001604",
+      "cobroId": "c2000000-0000-4000-8000-000000000604",
+      "tipo": "CONSTANCIA_PAGO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-7 11:05"
+    },
+    {
+      "id": "c3000000-0000-4000-8000-000000000605",
+      "cobroId": "c2000000-0000-4000-8000-000000000605",
+      "tipo": "NOTA_COBRO",
+      "destinatario": "cliente1@correo.test",
+      "enviadoEn": "D-3 10:05"
+    }
+  ]
+}

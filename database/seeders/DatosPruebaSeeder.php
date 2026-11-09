@@ -26,11 +26,23 @@ use RuntimeException;
  * - Idempotente: inserta solo lo que no existe por `id` (`insertOrIgnore`), sin pisar lo existente, en una transacción.
  * - Sin eventos: no escribe en `outbox_evento` ni en `mensaje_procesado`.
  *
+ * 603: con `SEMILLA_HISTORIA=si` se suma `datos/finanzas-historia.json` (obras 4 a 6, generado por
+ * `infra/semilla/historia/generar.mjs`): sus listas se agregan a las de la 011 y todo se carga y valida junto. Un cobro
+ * con `pagadoEn` (`D-n`) y `comprobante` queda `PAGADO`, registrado por admin1 ese día a las 11:00 de La Paz.
+ *
  * `php artisan db:seed --class=DatosPruebaSeeder --force` (con `SEMILLA_FECHA=AAAA-MM-DD` si se quiere una D fija).
  */
 class DatosPruebaSeeder extends Seeder
 {
     public const ARCHIVO = __DIR__.'/datos/finanzas.json';
+
+    /** 603: historia de demostración que se suma con `SEMILLA_HISTORIA=si`. */
+    public const ARCHIVO_HISTORIA = __DIR__.'/datos/finanzas-historia.json';
+
+    /** admin1 (docs/datos-prueba.md, sección 3): quien figura registrando los pagos de la historia. */
+    public const PAGOS_REGISTRADOS_POR = 'a0000000-0000-4000-8000-000000000001';
+
+    private const LISTAS = ['contratos', 'reservas', 'cobros', 'envios'];
 
     public function run(): void
     {
@@ -42,7 +54,7 @@ class DatosPruebaSeeder extends Seeder
             is_string($semillaFecha) ? $semillaFecha : null,
             CarbonImmutable::now()->toDateTimeImmutable(),
         );
-        $datos = self::leerDatos();
+        $datos = self::leerDatos(config('semilla.historia') === true);
 
         $contratos = array_map(fn (array $fila): array => self::contrato($fila, $d), self::lista($datos, 'contratos'));
         $reservas = array_map(fn (array $fila): array => self::reserva($fila), self::lista($datos, 'reservas'));
@@ -99,6 +111,12 @@ class DatosPruebaSeeder extends Seeder
             );
             $estado = $cobro->venceEn->format('Y-m-d') < $d->format('Y-m-d') ? EstadoCobro::Vencido : $cobro->estado;
 
+            // 603: cobro ya pagado (historia de demostración); un pagado no cuenta como vencido
+            $pagadoEn = isset($fila['pagadoEn']) ? FechaRelativa::fecha(self::texto($fila, 'pagadoEn'), $d) : null;
+            if ($pagadoEn !== null) {
+                $estado = EstadoCobro::Pagado;
+            }
+
             $resultado[] = [
                 'id' => $cobro->id,
                 'contrato_id' => $cobro->contratoId,
@@ -108,6 +126,12 @@ class DatosPruebaSeeder extends Seeder
                 'emitido_en' => $cobro->emitidoEn->format('Y-m-d'),
                 'vence_en' => $cobro->venceEn->format('Y-m-d'),
                 'estado' => $estado->value,
+                'pagado_en' => $pagadoEn?->format('Y-m-d'),
+                'comprobante' => $pagadoEn === null ? null : self::texto($fila, 'comprobante'),
+                'pago_registrado_por' => $pagadoEn === null ? null : self::PAGOS_REGISTRADOS_POR,
+                'pago_registrado_en' => $pagadoEn === null ? null : (new DateTimeImmutable(
+                    FechaRelativa::resolver(self::texto($fila, 'pagadoEn').' 11:00', $d),
+                ))->format('Y-m-d H:i:sP'),
             ];
         }
 
@@ -187,12 +211,30 @@ class DatosPruebaSeeder extends Seeder
         }
     }
 
-    /** @return array<mixed> */
-    private static function leerDatos(): array
+    /**
+     * Los datos de la 011 y, con `$conHistoria` (603), las listas de la historia agregadas a las suyas.
+     *
+     * @return array<mixed>
+     */
+    public static function leerDatos(bool $conHistoria = false): array
     {
-        $texto = file_get_contents(self::ARCHIVO);
+        $datos = self::leerArchivo(self::ARCHIVO);
+        if ($conHistoria) {
+            $historia = self::leerArchivo(self::ARCHIVO_HISTORIA);
+            foreach (self::LISTAS as $clave) {
+                $datos[$clave] = [...self::lista($datos, $clave), ...self::lista($historia, $clave)];
+            }
+        }
+
+        return $datos;
+    }
+
+    /** @return array<mixed> */
+    private static function leerArchivo(string $archivo): array
+    {
+        $texto = file_get_contents($archivo);
         if ($texto === false) {
-            throw new RuntimeException('Datos de prueba: no se pudo leer '.self::ARCHIVO.'.');
+            throw new RuntimeException('Datos de prueba: no se pudo leer '.$archivo.'.');
         }
         $datos = json_decode($texto, true, flags: JSON_THROW_ON_ERROR);
 
