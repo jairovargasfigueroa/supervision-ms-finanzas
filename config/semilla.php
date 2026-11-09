@@ -14,4 +14,7 @@ return [
     // Permiso explícito para cargar los datos de demostración fuera de desarrollo (601): solo el valor «si».
     'demo' => strtolower(trim((string) env('SEMILLA_DEMO', ''))) === 'si',
 
+    // 603: «si» suma a los datos de la 011 la historia de demostración (`datos/finanzas-historia.json`).
+    'historia' => strtolower(trim((string) env('SEMILLA_HISTORIA', ''))) === 'si',
+
 ];
